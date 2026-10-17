@@ -15,7 +15,7 @@ def send_verification_email(
 
     resend.Emails.send(
         {
-            "from": "AGGREY SHIELD <onboarding@resend.dev>",
+            "from": settings.EMAIL_FROM,
             "to": [recipient_email],
             "subject": "Verify your AGGREY SHIELD account",
             "html": f"""
@@ -59,7 +59,7 @@ def send_password_reset_email(
     )
     resend.Emails.send(
         {
-            "from": "AGGREY SHIELD <onboarding@resend.dev>",
+            "from": settings.EMAIL_FROM,
             "to": [recipient_email],
             "subject": "Reset your AGGREY SHIELD password",
             "html": f"""

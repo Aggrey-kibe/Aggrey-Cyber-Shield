@@ -23,6 +23,7 @@ from app.schemas.auth import (
 )
 from app.services.auth_service import (
     AuthenticationError,
+    EmailDeliveryError,
     EmailVerificationError,
     PasswordResetError,
     RegistrationError,
@@ -60,6 +61,11 @@ async def register(
     except RegistrationError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+    except EmailDeliveryError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(exc),
         ) from exc
 
@@ -110,6 +116,11 @@ async def resend_verification(
     except EmailVerificationError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    except EmailDeliveryError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(exc),
         ) from exc
 

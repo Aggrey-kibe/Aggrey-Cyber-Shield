@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     MFA_ISSUER_NAME: str = "AGGREY SHIELD"
     RESEND_API_KEY: str
+    # Must be an address on a domain verified in Resend before real users
+    # can receive email. onboarding@resend.dev only delivers to the owner
+    # of the Resend account.
+    EMAIL_FROM: str = "AGGREY SHIELD <onboarding@resend.dev>"
     PASSWORD_RESET_URL_BASE: str = "https://aggreykibe.blogspot.com/p/reset-password.html"
     @field_validator("ENVIRONMENT")
     @classmethod

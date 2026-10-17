@@ -5,6 +5,7 @@ Keeps registration, email verification, login, password recovery,
 password changes, and token business logic outside the API routes.
 """
 
+import asyncio
 import logging
 import secrets
 import uuid
@@ -53,6 +54,10 @@ class RegistrationError(Exception):
 
 class EmailVerificationError(Exception):
     """Raised when email verification cannot be completed."""
+
+
+class EmailDeliveryError(Exception):
+    """Raised when a required email could not be sent (service problem)."""
 
 
 class PasswordResetError(Exception):
@@ -133,7 +138,10 @@ async def register_user(
     try:
         code = await create_verification_code(db, user)
 
-        send_verification_email(
+        # The email SDK is synchronous; run it in a worker thread so a slow
+        # provider response cannot block every other request.
+        await asyncio.to_thread(
+            send_verification_email,
             user.email,
             code,
         )
@@ -146,7 +154,7 @@ async def register_user(
             "Registration email delivery or transaction failed"
         )
 
-        raise RegistrationError(
+        raise EmailDeliveryError(
             "We could not send the verification email. Please try again later."
         ) from exc
 
@@ -287,7 +295,8 @@ async def resend_verification_code(
             user,
         )
 
-        send_verification_email(
+        await asyncio.to_thread(
+            send_verification_email,
             user.email,
             code,
         )
@@ -296,8 +305,9 @@ async def resend_verification_code(
 
     except Exception as exc:
         await db.rollback()
+        logger.exception("Resend verification email failed")
 
-        raise EmailVerificationError(
+        raise EmailDeliveryError(
             "We could not send the verification email. Please try again later."
         ) from exc
 
