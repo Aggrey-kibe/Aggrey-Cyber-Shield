@@ -1,0 +1,16 @@
+{
+  "ruleset_version": "heuristic-2026.10.18-1",
+  "flag_threshold": 25,
+  "urls": {
+    "tp": 36,
+    "fp": 0,
+    "tn": 41,
+    "fn": 6
+  },
+  "messages": {
+    "tp": 25,
+    "fp": 0,
+    "tn": 28,
+    "fn": 6
+  }
+}

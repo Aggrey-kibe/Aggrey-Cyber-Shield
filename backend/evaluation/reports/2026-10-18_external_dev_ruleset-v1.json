@@ -1,0 +1,239 @@
+{
+  "generated_at_utc": "2026-10-18T11:58:58.482322+00:00",
+  "dataset": "external",
+  "split": "dev",
+  "title": "EXTERNAL public feeds, DEV split",
+  "sections": {
+    "urls": {
+      "ruleset_version": "heuristic-2026.10.18-1",
+      "samples": 2006,
+      "malicious": 1009,
+      "benign": 997,
+      "unassessable_inputs": 0,
+      "operating_points": {
+        "score>=1": {
+          "tp": 556,
+          "fp": 12,
+          "tn": 985,
+          "fn": 453,
+          "positives": 1009,
+          "negatives": 997,
+          "precision": 0.9788732394366197,
+          "recall": 0.5510406342913776,
+          "f1": 0.705136334812936,
+          "false_positive_rate": 0.012036108324974924,
+          "false_negative_rate": 0.4489593657086224,
+          "recall_ci95": [
+            0.5202140582438984,
+            0.5814800269911472
+          ],
+          "false_positive_rate_ci95": [
+            0.006898312993608824,
+            0.020919875219191284
+          ],
+          "precision_at_1pct_prevalence": 0.3162147238143916
+        },
+        "score>=15": {
+          "tp": 220,
+          "fp": 7,
+          "tn": 990,
+          "fn": 789,
+          "positives": 1009,
+          "negatives": 997,
+          "precision": 0.9691629955947136,
+          "recall": 0.2180376610505451,
+          "f1": 0.3559870550161813,
+          "false_positive_rate": 0.007021063189568706,
+          "false_negative_rate": 0.7819623389494549,
+          "recall_ci95": [
+            0.19365477535297107,
+            0.24455945281459238
+          ],
+          "false_positive_rate_ci95": [
+            0.0034050523188853413,
+            0.014421544816965129
+          ],
+          "precision_at_1pct_prevalence": 0.23878237752523737
+        },
+        "score>=25": {
+          "tp": 102,
+          "fp": 2,
+          "tn": 995,
+          "fn": 907,
+          "positives": 1009,
+          "negatives": 997,
+          "precision": 0.9807692307692307,
+          "recall": 0.10109018830525272,
+          "f1": 0.18328840970350405,
+          "false_positive_rate": 0.0020060180541624875,
+          "false_negative_rate": 0.8989098116947473,
+          "recall_ci95": [
+            0.08397653379222327,
+            0.121229887429022
+          ],
+          "false_positive_rate_ci95": [
+            0.000550283469083254,
+            0.007284722589817577
+          ],
+          "precision_at_1pct_prevalence": 0.33732038371213624
+        },
+        "score>=40": {
+          "tp": 39,
+          "fp": 2,
+          "tn": 995,
+          "fn": 970,
+          "positives": 1009,
+          "negatives": 997,
+          "precision": 0.9512195121951219,
+          "recall": 0.03865213082259663,
+          "f1": 0.07428571428571429,
+          "false_positive_rate": 0.0020060180541624875,
+          "false_negative_rate": 0.9613478691774033,
+          "recall_ci95": [
+            0.028402023145942243,
+            0.05240192487515011
+          ],
+          "false_positive_rate_ci95": [
+            0.000550283469083254,
+            0.007284722589817577
+          ],
+          "precision_at_1pct_prevalence": 0.16291873546602978
+        },
+        "score>=50": {
+          "tp": 7,
+          "fp": 0,
+          "tn": 997,
+          "fn": 1002,
+          "positives": 1009,
+          "negatives": 997,
+          "precision": 1.0,
+          "recall": 0.006937561942517344,
+          "f1": 0.013779527559055118,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 0.9930624380574826,
+          "recall_ci95": [
+            0.0033645086852388704,
+            0.01425088151990278
+          ],
+          "false_positive_rate_ci95": [
+            2.168404344971009e-19,
+            0.003838369628120973
+          ],
+          "precision_at_1pct_prevalence": 1.0
+        },
+        "score>=75": {
+          "tp": 0,
+          "fp": 0,
+          "tn": 997,
+          "fn": 1009,
+          "positives": 1009,
+          "negatives": 997,
+          "precision": null,
+          "recall": 0.0,
+          "f1": null,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 1.0,
+          "recall_ci95": [
+            0.0,
+            0.00379289318290244
+          ],
+          "false_positive_rate_ci95": [
+            2.168404344971009e-19,
+            0.003838369628120973
+          ],
+          "precision_at_1pct_prevalence": null
+        }
+      },
+      "by_category_at_flag_threshold": {
+        "ip_host": {
+          "tp": 21,
+          "fp": 0,
+          "tn": 0,
+          "fn": 0,
+          "positives": 21,
+          "negatives": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "false_positive_rate": null,
+          "false_negative_rate": 0.0,
+          "recall_ci95": [
+            0.8453561767357979,
+            0.9999999999999999
+          ],
+          "false_positive_rate_ci95": [
+            0.0,
+            1.0
+          ],
+          "precision_at_1pct_prevalence": null
+        },
+        "own_domain": {
+          "tp": 79,
+          "fp": 2,
+          "tn": 994,
+          "fn": 889,
+          "positives": 968,
+          "negatives": 996,
+          "precision": 0.9753086419753086,
+          "recall": 0.08161157024793389,
+          "f1": 0.15061963775023832,
+          "false_positive_rate": 0.002008032128514056,
+          "false_negative_rate": 0.9183884297520661,
+          "recall_ci95": [
+            0.06597351315518278,
+            0.10055732890796827
+          ],
+          "false_positive_rate_ci95": [
+            0.000550836135984399,
+            0.007292006170236907
+          ],
+          "precision_at_1pct_prevalence": 0.2910470948555196
+        },
+        "shared_platform": {
+          "tp": 2,
+          "fp": 0,
+          "tn": 1,
+          "fn": 18,
+          "positives": 20,
+          "negatives": 1,
+          "precision": 1.0,
+          "recall": 0.1,
+          "f1": 0.18181818181818182,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 0.9,
+          "recall_ci95": [
+            0.027865893984153206,
+            0.30103820641179335
+          ],
+          "false_positive_rate_ci95": [
+            0.0,
+            0.7934567085261071
+          ],
+          "precision_at_1pct_prevalence": 1.0
+        }
+      }
+    }
+  },
+  "feed_manifest": {
+    "retrieved_at_utc": "2026-10-18T11:57:30.472230+00:00",
+    "feeds": [
+      {
+        "name": "phishing-links-ACTIVE.txt",
+        "url": "https://raw.githubusercontent.com/mitchellkrogza/Phishing.Database/master/phishing-links-ACTIVE.txt",
+        "license": "MIT (Copyright Mitchell Krog and Phishing.Database contributors)",
+        "role": "malicious (phishing links; aggregated from third-party feeds, labels are noisy)",
+        "bytes": 65823890,
+        "sha256": "be4a179b3ac92b7135595b459c2c9867fe681c12209489dd99517db8407a67c6"
+      },
+      {
+        "name": "opendns-top-domains.txt",
+        "url": "https://raw.githubusercontent.com/opendns/public-domain-lists/master/opendns-top-domains.txt",
+        "license": "UNVERIFIED (no LICENSE file found); used locally for evaluation only, never redistributed",
+        "role": "benign (popular domains)",
+        "bytes": 135644,
+        "sha256": "aba7a11689d0d46c927f012952af795c85d735b39831dea32236eb22b2fb4044"
+      }
+    ]
+  },
+  "note": "Aggregates only. Third-party URLs are not stored in this repository."
+}

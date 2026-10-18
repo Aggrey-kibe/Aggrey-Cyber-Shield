@@ -1,7 +1,7 @@
 # PROJECT_HANDOFF.md — AGGREY SHIELD
 
-> Checkpoint status: last confirmed pushed commit is a91f3f5 (rate limiting; confirmed by push output `96f33e2..a91f3f5`).
-> The Session 3 scanning patch is committed only once the owner confirms its push.
+> Checkpoint status: last confirmed pushed commit is 31f9251 (scanning core; push output `a91f3f5..31f9251`), live-tested on the owner's PC.
+> The Session 4 evaluation patch is committed only once the owner confirms its push.
 > This file itself is committed only once it is added to the repo root and pushed.
 > Source of truth for code: https://github.com/Aggrey-kibe/Aggrey-Cyber-Shield
 > Founder/developer: Aggrey Kibe Kwamboka (Kenya). Android ID: com.aggreyshield.app
@@ -36,7 +36,8 @@ change-password, login, refresh, logout (all `POST /api/v1/auth/...`).
 - Password reset page on Blogger calls localhost: needs a public HTTPS backend.
 - Rate limiting: implemented and pushed (a91f3f5); in-memory, single process. Multiple workers/containers each keep
   their own counters (move to Redis then).
-- Scanning (Session 3): heuristic only. No live threat-intelligence lookups, no page fetching. NOT yet run on the owner's PC.
+- Scanning: heuristic only. No live threat-intelligence lookups, no page fetching. Live-tested on the owner's PC (see Session 3 live test).
+  MEASURED detection quality is LOW (Session 4): ~9% recall on real phishing links at the 'suspicious' threshold. See section 14.
 - Missing features: incidents, alerts, training, threat-intelligence lookups, organisation/RBAC. (`/users/me`, URL/message
   scanning and scan history were added in Session 3.)
 
@@ -176,3 +177,53 @@ Verified in a sandbox with real PostgreSQL 16, migrations applied from scratch (
   Mutation checks: removing the per-user filter (get and list) fails the isolation tests; disabling brand detection fails 10 tests.
 - KNOWN LIMITS: heuristic rules only; no reputation feeds; brand list is small and must be reviewed/extended; Swahili coverage is
   partial; very new scam styles can look clean. Do not market this as complete protection.
+
+### Session 3 live test (owner's PC, 2026-10-18)
+- `alembic upgrade head`: 9f105e83566d -> ad74ffee848f (scans table). Server on port 8005. `/users/me` OK (verified=True).
+- Google link: score 0, official-domain note. Fake Safaricom sub-name link: 72, likely_dangerous. KRA scam SMS: 55, likely_dangerous.
+- History total 3; request with no token -> 401. Pushed as 31f9251.
+
+## 14. DETECTION QUALITY (Session 4: first real measurement; patch not yet pushed)
+Method and limits: `backend/evaluation/DATASETS.md`. Reproduce: `python -m evaluation.fetch_external` then
+`python -m evaluation.run_eval --dataset external --split test`. Reports (aggregates only, no third-party URLs): `backend/evaluation/reports/`.
+
+Data: 1,009/991 live phishing links (Phishing.Database, MIT) + 997/1,003 popular domains (OpenDNS top list, licence unverified),
+dev/test split keyed by registered domain, max 2 URLs per domain, retrieved 2026-10-18.
+
+| Ruleset | Split | Threshold | Precision | Recall (95% CI) | False-alarm rate (95% CI) | Precision at 1% prevalence |
+|---|---|---|---|---|---|---|
+| v0 (as pushed in 31f9251) | dev | score>=25 | 96.1% | 7.2% (5.8-9.0) | 0.3% (0.1-0.9) | 19.5% |
+| v0 | **test (locked)** | score>=25 | 96.8% | 6.2% (4.8-7.8) | 0.2% (0.1-0.7) | 23.8% |
+| v1 (this patch) | dev | score>=25 | 98.1% | 10.1% (8.4-12.1) | 0.2% (0.1-0.7) | 33.7% |
+| v1 | **test (locked, run once)** | score>=25 | 98.9% | **8.9% (7.3-10.8)** | 0.1% (0.0-0.6) | 47.4% |
+
+Findings:
+- When it warns, it is usually right (precision ~99%), but it **misses ~91% of real phishing links.** Only raw-IP links are caught reliably (100%).
+  A clean result must never be presented as reassurance. The standing limitation text now says so.
+- Most real phishing sits on throw-away or compromised domains with no brand in the host, which address-only rules cannot see.
+- Precision is flattered by the 50/50 sample; at a realistic 1% phishing rate it is far lower (see last column).
+- Thresholds below 25 are flattered by dataset bias (all benign samples are https domain roots); do not quote them.
+- Dev and test agree, so tuning on dev did not overfit. Nothing was tuned on test.
+
+Changes in ruleset v1 (data only, chosen from dev evidence): added brand-owned domains that caused real false alarms
+(images-amazon.com, google-analytics.com, microsoftonline.com and other certain Google/Microsoft/Amazon/Meta domains); added 19 widely
+phished brands with unambiguous official domains; REMOVED `amazonaws.com` and `goo.gl` from the official lists because they host
+attacker-controlled content / hide destinations (they were suppressing warnings: a security bug in the previous list).
+Standing limitation text strengthened. `RULESET_VERSION = "heuristic-2026.10.18-1"` added.
+
+Unresolved false alarms (not added to the official list without a primary source): `paypal-communication.com`, `member-hsbc-group.com`.
+Seed (synthetic) misses recorded in the baseline: obfuscated spellings (p1n, rev3rse), scams with no keywords (CEO gift-card, "widow",
+job-from-home), generic scam shops, compromised-site paths. Candidate signals NOT added because their false-alarm rate cannot be
+measured yet: victim email (plain/base64) in URL, wider path keywords. They need a benign deep-link corpus first.
+
+Tests: 153 (139 + 14 new: harness maths, split/leakage, defang, downloader allow-list, reproducible sampling, seed regression guard).
+Mutation checks: disabling brand detection fails the guard; removing a trusted domain (new false alarm) fails the guard.
+
+## 15. NEXT (priority order, from the evidence above)
+1. Threat-intelligence lookups (hash/reputation based, no URL fetching, SSRF-safe) with provenance + freshness; evaluate on an
+   independent source or a LATER time window, never the same feed.
+2. Build a benign deep-link corpus (licensed or consented) so path-based rules can be measured, then add victim-email/path signals.
+3. GitHub Actions CI (tests, lint, dependency audit, Docker build). NOT added yet: pushing workflow files needs a token with `workflow` scope.
+4. Rebuild and run the Docker image (last verified before scanning/tldextract were added).
+5. Android wiring (project not in this repo yet), alerts/incidents, organisations + RBAC, audit log.
+6. Consented real SMS/email scam corpus for message evaluation (currently synthetic only).

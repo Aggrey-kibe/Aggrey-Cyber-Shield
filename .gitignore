@@ -48,3 +48,6 @@ Thumbs.db
 infra/aws/.terraform/
 infra/aws/*.tfstate
 infra/aws/*.tfstate.backup
+
+# ===== Evaluation: downloaded third-party feeds (never commit) =====
+backend/evaluation/data/external/

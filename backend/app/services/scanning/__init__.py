@@ -8,3 +8,5 @@ user's network) connect anywhere (no SSRF, no tracking pixels, no malware
 downloads). Live reputation lookups can be added later as a separate,
 carefully-restricted step.
 """
+
+RULESET_VERSION = "heuristic-2026.10.18-1"

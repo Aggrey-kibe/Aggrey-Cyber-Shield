@@ -5,7 +5,9 @@ SEVERITIES = ("info", "low", "medium", "high")
 
 LIMITATIONS = (
     "This check looks only at the address or text you gave it. It does not "
-    "open the link, inspect the page, or consult live threat databases yet.",
+    "open the link, inspect the page, or consult live threat databases yet. "
+    "In our own tests on real phishing links, rules like these missed most "
+    "of them, so a clean result means very little.",
     "New scams can look clean. If you are unsure, contact the organisation "
     "through its official app, website or phone number, not through this "
     "message or link.",
