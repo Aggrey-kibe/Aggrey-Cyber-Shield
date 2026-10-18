@@ -78,3 +78,34 @@ def sent_emails(monkeypatch):
         "app.services.auth_service.send_verification_email", fake_send
     )
     return outbox
+
+
+# ---------------------------------------------------------------------------
+# Rate limiter isolation: every test starts (and ends) with empty counters.
+# ---------------------------------------------------------------------------
+from app.core.rate_limit import limiter
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter():
+    limiter.reset()
+    yield
+    limiter.reset()
+
+
+# ---------------------------------------------------------------------------
+# Safety net: tests must NEVER reach the real email provider (that could send
+# real email with your real API key). Both outgoing-email functions are
+# replaced by no-ops in every test; tests that need to read the emailed code
+# use the `sent_emails` fixture, which overrides the verification one.
+# ---------------------------------------------------------------------------
+@pytest.fixture(autouse=True)
+def _no_real_email(monkeypatch):
+    monkeypatch.setattr(
+        "app.services.auth_service.send_verification_email",
+        lambda recipient_email, verification_code: None,
+    )
+    monkeypatch.setattr(
+        "app.services.auth_service.send_password_reset_email",
+        lambda recipient_email, reset_token: None,
+    )

@@ -42,9 +42,16 @@ _STATUS_CODE_TO_ERROR_CODE = {
 }
 
 
-def _error_response(code: str, message: str, status_code: int, details=None) -> JSONResponse:
+def _error_response(
+    code: str,
+    message: str,
+    status_code: int,
+    details=None,
+    headers: dict[str, str] | None = None,
+) -> JSONResponse:
     return JSONResponse(
         status_code=status_code,
+        headers=headers,
         content={
             "error": {
                 "code": code,
@@ -89,6 +96,7 @@ def register_exception_handlers(app: FastAPI) -> None:
             code=_code_for_status(exc.status_code),
             message=str(exc.detail),
             status_code=exc.status_code,
+            headers=exc.headers,
         )
 
     @app.exception_handler(Exception)

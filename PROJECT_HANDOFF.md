@@ -1,6 +1,7 @@
 # PROJECT_HANDOFF.md — AGGREY SHIELD
 
-> Checkpoint status: code is COMMITTED AND PUSHED (GitHub `main` @ 05cccd8, confirmed by push output and a fresh clone).
+> Checkpoint status: last confirmed pushed commit before the rate-limiting work is 96f33e2 (confirmed by push output).
+> The rate-limiting patch (section 11, Session 2) is committed only once the owner confirms its push.
 > This file itself is committed only once it is added to the repo root and pushed.
 > Source of truth for code: https://github.com/Aggrey-kibe/Aggrey-Cyber-Shield
 > Founder/developer: Aggrey Kibe Kwamboka (Kenya). Android ID: com.aggreyshield.app
@@ -31,10 +32,10 @@ change-password, login, refresh, logout (all `POST /api/v1/auth/...`).
   specific seeded users). They are outside `testpaths = tests`, and fail at collection if collected.
 - Docker: image never confirmed rebuilt/running after the `resend` fix.
 - Resend email delivery: HTTP 409 never diagnosed.
-- End-to-end register + verify with a fresh account: not verified.
+- End-to-end register + verify with a fresh account: VERIFIED live on 2026-10-17 for the Resend owner's address (see Session 1 live test).
 - Password reset page on Blogger calls localhost: needs a public HTTPS backend.
-- Rate limiting: **none found** in the code (grep for rate-limit/slowapi empty). Login, register, forgot-password,
-  verify-email are open to brute force/abuse.
+- Rate limiting: implemented in Session 2 (in-memory, single process). Not yet pushed/confirmed until owner confirms.
+  Not distributed: multiple workers/containers each keep their own counters (move to Redis then).
 - Missing features: `/users/me`, security scores, incidents, scan history, alerts, training, URL analysis.
 
 ## 4. Confirmed blockers / defects
@@ -54,7 +55,7 @@ change-password, login, refresh, logout (all `POST /api/v1/auth/...`).
 ## 5. Environment variable NAMES (values never stored here)
 APP_NAME, ENVIRONMENT, DEBUG, API_V1_STR, DATABASE_URL, CORS_ALLOWED_ORIGINS, LOG_LEVEL,
 JWT_SECRET_KEY*, JWT_ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS,
-MFA_ISSUER_NAME, RESEND_API_KEY*, PASSWORD_RESET_URL_BASE.   (* = required, no default)
+MFA_ISSUER_NAME, RESEND_API_KEY*, PASSWORD_RESET_URL_BASE, EMAIL_FROM, TRUST_PROXY_HEADERS.   (* = required, no default)
 
 ## 6. Migrations (Alembic, `backend/alembic/versions/`)
 be3e4976da87 users -> cda9f895f46d refresh_tokens -> 4db34f20cfb4 email_verification_codes
@@ -75,7 +76,7 @@ Then: add real automated auth tests (pytest + test DB), add rate limiting, imple
 Verification: `pytest` all green incl. new auth tests; `docker build` succeeds; container `/health` 200.
 
 ## 10. Production risks (open)
-No rate limiting; sandbox email sender; no HTTPS backend; no monitoring/backups; auth untested in CI.
+Rate limiting is single-process only; sandbox email sender; no HTTPS backend; no monitoring/backups; auth untested in CI.
 
 ## 11. SESSION LOG (append-only)
 
@@ -112,7 +113,8 @@ Verified in a sandbox with real PostgreSQL 16, migrations applied from scratch (
    and `EMAIL_FROM` uses it (Blogger domain cannot be used; a purchased domain is needed). Not yet done.
 2. Real Resend delivery of the *verification code* email to a brand-new address: NOT yet verified end to end
    (only the password-reset email was seen arriving, to the owner's address).
-3. No rate limiting on login/register/forgot/verify endpoints.
+3. Rate limiting is in-memory per process (see core/rate_limit.py); per-email lockout can be abused to temporarily
+   lock a known victim email (accepted trade-off, 15 min, cleared on successful login). Needs Redis for multi-worker.
 4. Production password reset needs a public HTTPS backend + CORS for the Blogger origin.
 5. Register and resend-verification reveal whether an email is registered (409 / "already verified");
    accepted trade-off for now, revisit.
@@ -121,6 +123,29 @@ Verified in a sandbox with real PostgreSQL 16, migrations applied from scratch (
 8. Android integration untested.
 
 ## 13. NEXT EXACT TASK
-1. Restart the local dev server so it runs the new code (it was started before the patch).
-2. Run the 19 DB tests locally against a dedicated `aggreyshield_test` database.
-3. Choose a domain, verify it in Resend, set EMAIL_FROM. 4. Rate limiting. 5. `/users/me`.
+1. Apply + push the rate-limiting patch; restart the dev server (port 8003 currently runs pre-rate-limit code).
+2. Run the DB tests locally against a dedicated `aggreyshield_test` database (they skip otherwise).
+3. Choose a domain, verify it in Resend, set EMAIL_FROM.
+4. `/users/me`, then scan history / scoring / incidents.
+
+### Session 1 live test (owner's PC, 2026-10-17)
+- Deleted the local test account for the Resend owner's address (cascade removes its tokens/codes), re-registered on
+  the new server (port 8003): API returned "Account created", which only happens after Resend accepted the email.
+- Verification code email arrived. Login BEFORE verifying -> 401 "Please verify your email address before signing in."
+  Verify with the emailed code -> success. Login AFTER -> access + refresh tokens received. (Owner's address only:
+  the Resend sandbox sender cannot deliver to other addresses.)
+
+### Session 2 — rate limiting (patch built and verified in a sandbox with real PostgreSQL; not yet pushed)
+- New `app/core/rate_limit.py`: sliding-window limiter (no new dependency), per-IP limits (generous: shared mobile
+  IPs) + per-email limits (strict). Login: 10/15min per email (cleared on successful login), 60/15min per IP.
+  Register 5/h per email + 20/h per IP. Verify 10/15min per email. Resend-verification 5/h per email.
+  Forgot-password 5/h per email (same behaviour for known and unknown emails). Reset-password and change-password per IP.
+- Blocked requests: HTTP 429, `Retry-After` header, standard error envelope (`TOO_MANY_REQUESTS`).
+- `TRUST_PROXY_HEADERS` (default false): X-Forwarded-For is ignored unless exactly one trusted proxy (ALB) is in front;
+  then the LAST entry is used. Forged headers cannot bypass limits when disabled (tested).
+- Error handler now forwards exception headers (Retry-After, and WWW-Authenticate on 401, previously dropped).
+- Memory capped (100k keys, expired keys pruned).
+- Tests: 43 pass (25 earlier + 18 new), stable over repeated runs; mutation check (limiter disabled) makes 8 tests fail.
+  Real HTTP check on a live uvicorn: attempts 1-10 -> 401, attempt 11 -> 429 with `retry-after: 900`.
+- Test safety: autouse fixture blocks both real email functions in all tests (before this fix the new forgot-password
+  tests attempted real Resend calls: 50 attempts logged; after: 0).

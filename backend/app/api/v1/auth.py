@@ -6,6 +6,23 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user
+from app.core.rate_limit import (
+    CHANGE_PASSWORD_IP,
+    FORGOT_EMAIL,
+    FORGOT_IP,
+    LOGIN_EMAIL,
+    LOGIN_IP,
+    REGISTER_EMAIL,
+    REGISTER_IP,
+    RESEND_EMAIL,
+    RESEND_IP,
+    RESET_IP,
+    VERIFY_EMAIL,
+    VERIFY_IP,
+    clear_email,
+    enforce_email,
+    limit_by_ip,
+)
 from app.db.session import get_db
 from app.models import User
 from app.schemas.auth import (
@@ -49,12 +66,15 @@ router = APIRouter(
     "/register",
     response_model=MessageResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(limit_by_ip(REGISTER_IP))],
 )
 async def register(
     request: RegisterRequest,
     db: AsyncSession = Depends(get_db),
 ) -> MessageResponse:
     """Register a new Aggrey Shield user."""
+
+    enforce_email(REGISTER_EMAIL, request.email)
 
     try:
         await register_user(db, request)
@@ -74,12 +94,18 @@ async def register(
     )
 
 
-@router.post("/verify-email", response_model=MessageResponse)
+@router.post(
+    "/verify-email",
+    response_model=MessageResponse,
+    dependencies=[Depends(limit_by_ip(VERIFY_IP))],
+)
 async def verify_email(
     request: VerifyEmailRequest,
     db: AsyncSession = Depends(get_db),
 ) -> MessageResponse:
     """Verify a user's email address."""
+
+    enforce_email(VERIFY_EMAIL, request.email)
 
     try:
         await verify_user_email(
@@ -101,12 +127,15 @@ async def verify_email(
 @router.post(
     "/resend-verification",
     response_model=MessageResponse,
+    dependencies=[Depends(limit_by_ip(RESEND_IP))],
 )
 async def resend_verification(
     request: ResendVerificationRequest,
     db: AsyncSession = Depends(get_db),
 ) -> MessageResponse:
     """Send a new email verification code."""
+
+    enforce_email(RESEND_EMAIL, request.email)
 
     try:
         await resend_verification_code(
@@ -132,6 +161,7 @@ async def resend_verification(
 @router.post(
     "/forgot-password",
     response_model=MessageResponse,
+    dependencies=[Depends(limit_by_ip(FORGOT_IP))],
 )
 async def forgot_password(
     request: EmailRequest,
@@ -142,7 +172,12 @@ async def forgot_password(
 
     The response is intentionally identical whether or not the account
     exists, preventing email-account enumeration.
+
+    The rate limit applies to every email address equally, whether or not
+    an account exists, so it reveals nothing either.
     """
+
+    enforce_email(FORGOT_EMAIL, request.email)
 
     try:
         await request_password_reset(
@@ -162,6 +197,7 @@ async def forgot_password(
 @router.post(
     "/reset-password",
     response_model=MessageResponse,
+    dependencies=[Depends(limit_by_ip(RESET_IP))],
 )
 async def reset_password_route(
     request: ResetPasswordRequest,
@@ -189,6 +225,7 @@ async def reset_password_route(
 @router.post(
     "/change-password",
     response_model=MessageResponse,
+    dependencies=[Depends(limit_by_ip(CHANGE_PASSWORD_IP))],
 )
 async def change_password_route(
     request: ChangePasswordRequest,
@@ -214,12 +251,14 @@ async def change_password_route(
     )
 
 
-@router.post("/login")
+@router.post("/login", dependencies=[Depends(limit_by_ip(LOGIN_IP))])
 async def login(
     request: LoginRequest,
     db: AsyncSession = Depends(get_db),
 ):
     """Authenticate a user and return access and refresh tokens."""
+
+    enforce_email(LOGIN_EMAIL, request.email)
 
     try:
         user = await authenticate_user(db, request)
@@ -229,6 +268,9 @@ async def login(
             detail=str(exc),
             headers={"WWW-Authenticate": "Bearer"},
         ) from exc
+
+    # A successful sign-in clears this email's failed-attempt counter.
+    clear_email(LOGIN_EMAIL, request.email)
 
     access_token, refresh_token = await create_user_tokens(db, user)
 

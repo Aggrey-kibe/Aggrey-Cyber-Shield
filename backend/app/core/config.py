@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     # can receive email. onboarding@resend.dev only delivers to the owner
     # of the Resend account.
     EMAIL_FROM: str = "AGGREY SHIELD <onboarding@resend.dev>"
+    # Enable ONLY behind exactly one trusted proxy (e.g. an AWS ALB) that
+    # appends the real client IP to X-Forwarded-For. See core/rate_limit.py.
+    TRUST_PROXY_HEADERS: bool = False
     PASSWORD_RESET_URL_BASE: str = "https://aggreykibe.blogspot.com/p/reset-password.html"
     @field_validator("ENVIRONMENT")
     @classmethod
