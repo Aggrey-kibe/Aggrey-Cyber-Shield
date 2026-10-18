@@ -1,7 +1,7 @@
 # PROJECT_HANDOFF.md — AGGREY SHIELD
 
-> Checkpoint status: last confirmed pushed commit before the rate-limiting work is 96f33e2 (confirmed by push output).
-> The rate-limiting patch (section 11, Session 2) is committed only once the owner confirms its push.
+> Checkpoint status: last confirmed pushed commit is a91f3f5 (rate limiting; confirmed by push output `96f33e2..a91f3f5`).
+> The Session 3 scanning patch is committed only once the owner confirms its push.
 > This file itself is committed only once it is added to the repo root and pushed.
 > Source of truth for code: https://github.com/Aggrey-kibe/Aggrey-Cyber-Shield
 > Founder/developer: Aggrey Kibe Kwamboka (Kenya). Android ID: com.aggreyshield.app
@@ -34,9 +34,11 @@ change-password, login, refresh, logout (all `POST /api/v1/auth/...`).
 - Resend email delivery: HTTP 409 never diagnosed.
 - End-to-end register + verify with a fresh account: VERIFIED live on 2026-10-17 for the Resend owner's address (see Session 1 live test).
 - Password reset page on Blogger calls localhost: needs a public HTTPS backend.
-- Rate limiting: implemented in Session 2 (in-memory, single process). Not yet pushed/confirmed until owner confirms.
-  Not distributed: multiple workers/containers each keep their own counters (move to Redis then).
-- Missing features: `/users/me`, security scores, incidents, scan history, alerts, training, URL analysis.
+- Rate limiting: implemented and pushed (a91f3f5); in-memory, single process. Multiple workers/containers each keep
+  their own counters (move to Redis then).
+- Scanning (Session 3): heuristic only. No live threat-intelligence lookups, no page fetching. NOT yet run on the owner's PC.
+- Missing features: incidents, alerts, training, threat-intelligence lookups, organisation/RBAC. (`/users/me`, URL/message
+  scanning and scan history were added in Session 3.)
 
 ## 4. Confirmed blockers / defects
 1. **`resend` missing from `backend/requirements.txt` on GitHub** (root cause of Docker `ModuleNotFoundError`).
@@ -55,11 +57,12 @@ change-password, login, refresh, logout (all `POST /api/v1/auth/...`).
 ## 5. Environment variable NAMES (values never stored here)
 APP_NAME, ENVIRONMENT, DEBUG, API_V1_STR, DATABASE_URL, CORS_ALLOWED_ORIGINS, LOG_LEVEL,
 JWT_SECRET_KEY*, JWT_ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS,
-MFA_ISSUER_NAME, RESEND_API_KEY*, PASSWORD_RESET_URL_BASE, EMAIL_FROM, TRUST_PROXY_HEADERS.   (* = required, no default)
+MFA_ISSUER_NAME, RESEND_API_KEY*, PASSWORD_RESET_URL_BASE, EMAIL_FROM, TRUST_PROXY_HEADERS.  (no new variables in Session 3)   (* = required, no default)
 
 ## 6. Migrations (Alembic, `backend/alembic/versions/`)
 be3e4976da87 users -> cda9f895f46d refresh_tokens -> 4db34f20cfb4 email_verification_codes
--> 9f105e83566d password_reset_tokens (verify chain order with `alembic history` on a real DB).
+-> 9f105e83566d password_reset_tokens -> ad74ffee848f scans (Session 3; owner must run `alembic upgrade head`).
+Chain verified in a sandbox: upgrade, downgrade, re-upgrade, no model/migration drift, from-empty = 6 tables.
 
 ## 7. Local services (development only, per handoff)
 Backend dev server: port 8001. Docker test mapping: host 8002 -> container 8000. Not production.
@@ -123,10 +126,11 @@ Verified in a sandbox with real PostgreSQL 16, migrations applied from scratch (
 8. Android integration untested.
 
 ## 13. NEXT EXACT TASK
-1. Apply + push the rate-limiting patch; restart the dev server (port 8003 currently runs pre-rate-limit code).
+1. Apply + push the scanning patch; run `alembic upgrade head` on the dev DB; restart the dev server; live-test /scans.
 2. Run the DB tests locally against a dedicated `aggreyshield_test` database (they skip otherwise).
-3. Choose a domain, verify it in Resend, set EMAIL_FROM.
-4. `/users/me`, then scan history / scoring / incidents.
+3. GitHub Student Pack was still PENDING (2026-10-18). When approved: claim a free domain (Namecheap .me), verify it in
+   Resend, set EMAIL_FROM. Until then registration works only for the Resend owner's address.
+4. Next features: threat-intelligence lookups (hash-based, no URL fetching), alerts, incidents, then Android wiring.
 
 ### Session 1 live test (owner's PC, 2026-10-17)
 - Deleted the local test account for the Resend owner's address (cascade removes its tokens/codes), re-registered on
@@ -149,3 +153,26 @@ Verified in a sandbox with real PostgreSQL 16, migrations applied from scratch (
   Real HTTP check on a live uvicorn: attempts 1-10 -> 401, attempt 11 -> 429 with `retry-after: 900`.
 - Test safety: autouse fixture blocks both real email functions in all tests (before this fix the new forgot-password
   tests attempted real Resend calls: 50 attempts logged; after: 0).
+
+### Session 3 — threat-scanning core + /users/me (patch built and verified in a sandbox with real PostgreSQL; not yet pushed)
+- NEW `app/services/scanning/` (pure, offline, never opens/fetches anything, so no SSRF):
+  `url_analyzer.py`, `message_analyzer.py`, `brands.py` (editable data: brands + official domains, shorteners, free hosts,
+  risky TLDs, keywords), `types.py` (Finding, scoring, verdict wording, limitations).
+- URL signals: dangerous scheme (javascript:/data:), '@' credential trick, raw/obfuscated IP, punycode/mixed-script look-alikes,
+  brand impersonation (look-alike chars, 1-char typos, brand in sub-name/domain, weak 'prefix' match), shorteners, free hosting,
+  odd ports/TLDs, many subdomains/hyphens, redirect params, .apk/.exe downloads, encoding tricks, no-HTTPS, long URLs.
+- Message signals (English + some Swahili, Kenyan M-PESA scams): asks PIN/OTP/password (negations like "never share" ignored),
+  "sent by mistake, send back", prize claims, advance fees (loans/jobs), investment promises, account threats, verify prompts,
+  app install, urgency, payment requests, pressure+link combination; every link inside is URL-analysed.
+- Scores 0-100 -> verdicts: no_warning_signs / low_risk / suspicious / likely_dangerous. The system NEVER says "safe";
+  every result carries `confidence: "limited"` and `limitations` text. Every finding has a plain-language explanation.
+- New endpoints (all need a signed-in user): POST /api/v1/scans/url, POST /api/v1/scans/message, GET /api/v1/scans
+  (paginated, ?scan_type=), GET/DELETE /api/v1/scans/{id}, GET /api/v1/users/me.
+- Data/privacy: table `scans` (migration ad74ffee848f). Stored preview drops URL query/fragment and masks digit runs of 4+
+  in messages; SHA-256 of the input kept; users can delete their scans; deleting a user cascades. Other users' scans return 404.
+- Rate limits: 30 scans/min per user, 300 per 15 min per IP.
+- New dependency: `tldextract==5.4.0` (public-suffix data bundled; used offline, `cache_dir=None`, so no network or disk writes).
+- Tests: 139 pass (43 earlier + 96 new: analyzers incl. 1,500-input fuzz and hostile inputs; API incl. isolation/privacy).
+  Mutation checks: removing the per-user filter (get and list) fails the isolation tests; disabling brand detection fails 10 tests.
+- KNOWN LIMITS: heuristic rules only; no reputation feeds; brand list is small and must be reviewed/extended; Swahili coverage is
+  partial; very new scam styles can look clean. Do not market this as complete protection.

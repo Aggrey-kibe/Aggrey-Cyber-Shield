@@ -62,6 +62,9 @@ FORGOT_IP = Rule("forgot_ip", 20, 60 * 60)
 FORGOT_EMAIL = Rule("forgot_email", 5, 60 * 60)
 RESET_IP = Rule("reset_ip", 30, 60 * 60)
 CHANGE_PASSWORD_IP = Rule("change_password_ip", 20, 15 * 60)
+# Scanning: per signed-in user (precise) and per IP (generous, shared mobile IPs).
+SCAN_USER = Rule("scan_user", 30, 60)
+SCAN_IP = Rule("scan_ip", 300, 15 * 60)
 
 
 class SlidingWindowLimiter:
@@ -188,3 +191,8 @@ def enforce_email(rule: Rule, email: str) -> None:
 def clear_email(rule: Rule, email: str) -> None:
     """Forget the attempts for an email (used after a successful login)."""
     limiter.clear(f"{rule.name}:{email.strip().lower()}")
+
+
+def enforce_user(rule: Rule, user_id) -> None:
+    """Apply `rule` to a signed-in user (keyed by their id)."""
+    _enforce(f"{rule.name}:{user_id}", rule, "user")

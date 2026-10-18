@@ -9,6 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.auth import router as auth_router_v1
 from app.api.v1.health import router as health_router_v1
+from app.api.v1.scans import router as scans_router_v1
+from app.api.v1.users import router as users_router_v1
 from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging_config import configure_logging
@@ -48,6 +50,8 @@ register_exception_handlers(app)
 # --- Routers ---
 app.include_router(health_router_v1, prefix=settings.API_V1_STR)
 app.include_router(auth_router_v1, prefix=settings.API_V1_STR)
+app.include_router(users_router_v1, prefix=settings.API_V1_STR)
+app.include_router(scans_router_v1, prefix=settings.API_V1_STR)
 
 @app.get("/health", tags=["Health"], summary="Liveness check")
 async def liveness_check():
