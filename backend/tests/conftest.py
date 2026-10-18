@@ -50,7 +50,7 @@ async def clean_db():
     # loops; discard them without trying to close them.
     await engine.dispose(close=False)
     async with AsyncSessionLocal() as session:
-        await session.execute(text("TRUNCATE users CASCADE"))
+        await session.execute(text("TRUNCATE users, threat_feed_runs, threat_indicators CASCADE"))
         await session.commit()
     yield
     # Each test has its own event loop; drop pooled connections between tests.

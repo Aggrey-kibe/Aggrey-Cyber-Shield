@@ -1,7 +1,7 @@
 # PROJECT_HANDOFF.md — AGGREY SHIELD
 
-> Checkpoint status: last confirmed pushed commit is 31f9251 (scanning core; push output `a91f3f5..31f9251`), live-tested on the owner's PC.
-> The Session 4 evaluation patch is committed only once the owner confirms its push.
+> Checkpoint status: last confirmed pushed commit is 8b6e1ee (evaluation harness; push output `31f9251..8b6e1ee`).
+> The Session 5 threat-intelligence patch is committed only once the owner confirms its push.
 > This file itself is committed only once it is added to the repo root and pushed.
 > Source of truth for code: https://github.com/Aggrey-kibe/Aggrey-Cyber-Shield
 > Founder/developer: Aggrey Kibe Kwamboka (Kenya). Android ID: com.aggreyshield.app
@@ -227,3 +227,52 @@ Mutation checks: disabling brand detection fails the guard; removing a trusted d
 4. Rebuild and run the Docker image (last verified before scanning/tldextract were added).
 5. Android wiring (project not in this repo yet), alerts/incidents, organisations + RBAC, audit log.
 6. Consented real SMS/email scam corpus for message evaluation (currently synthetic only).
+
+## 16. THREAT-INTELLIGENCE LAYER (Session 5; patch built and verified in a sandbox, not yet pushed)
+Migration `e7bad83ac69b` (after ad74ffee848f): tables `threat_feed_runs` (audit trail of every refresh) and `threat_indicators`.
+Owner must run `alembic upgrade head`, then load feeds (see commands). Chain verified: upgrade, downgrade, re-upgrade, no drift, from-empty.
+
+Architecture (`backend/app/services/intel/`): `feeds.py` (definitions, licence, ttl, sanity limits, protected domains), `download.py`
+(HTTPS + host allow-list + redirects refused + size cap + HTML/empty rejected), `normalize.py` (one canonical form shared by ingest and lookup),
+`ingest.py` (atomic), `lookup.py` (database only), `cli.py` (`refresh`, `status`). New endpoint `GET /api/v1/intel/status` (signed-in).
+Scan pipeline is now staged: validate/normalise -> rules -> threat-list lookup -> evidence aggregation. Results carry `intel` (which lists,
+refreshed when, fresh or stale, licence, hits) and `confidence: "listed" | "limited"`. Limitations text says honestly whether lists were
+loaded, stale, or checked-and-not-listed ("not being listed means little").
+
+Safety properties (each proven by a test AND by breaking the code on purpose to see the test fail):
+- A refresh is ONE transaction; rolled back (old data untouched) if the feed is empty, too small, >20% invalid, <50% or >300% of the last good size.
+- Full refresh = snapshot: delisted entries are removed. Partial (`--limit`) runs never delete and never count as fresh. `expires_at` (14 days) is a backstop.
+- Only SHA-256 hashes of indicators are stored (no hostile URL text in the database). Nothing ever contacts an indicator.
+- Exact-URL indicators match exact URLs only (scheme, fragment ignored). Domain indicators match that host only (not parents or siblings).
+- Feeds cannot condemn brand-owned domains, shorteners, free-hosting roots, or reviewed legitimate services/platform roots.
+- Evidence weighting: exact listed page 85, whole-host listing 70 (broader, likelier to include mistakes).
+
+REAL-DATA RESULTS (2026-10-18, Phishing.Database MIT feeds, full run in ~200 s):
+- links: 789,054 lines -> 788,716 accepted, 338 rejected. domains: 392,178 -> 391,932 accepted, 246 rejected, incl. 60 entries on brand-owned
+  domains (azure.com 49, google.com 5, microsoftonline.com, instagram.com ...) and 6 shared roots that the guard refused.
+- Round trip: 2,000/2,000 real feed URLs found again (100%). Lookup latency median 1.9 ms, p95 2.6 ms (1.17M rows).
+- FALSE-POSITIVE AUDIT against a top-10,000 popularity list: the raw domain feed flagged 10 popular sites as whole-site phishing
+  (gravatar.com, nflxvideo.net, pastebin.com, getpocket.com, mercadolibre.com.ar, yotpo.com, angelfire.com, unbouncepages.com, abload.de, lockhosts.com).
+  After reviewed protections: 1 remains (`lockhosts.com`, UNREVIEWED: unknown site, deliberately not exempted). Measured on popular sites only.
+- Storage: 593 MB -> 346 MB (32-byte hashes, one index instead of three). Still ~350 MB for both feeds; the domains feed alone is ~115 MB.
+- Reviewed exemptions were judged from general knowledge, NOT primary sources. A maintainer must confirm them.
+
+NOT MEASURED (do not claim): recall of the lookups. Testing the feed against itself would score ~100% and prove nothing. Plan: temporal holdout.
+The ingested hashes ARE the snapshot at time T. After >=7 days, download a newer snapshot, take entries whose hash is not in the database,
+and measure (a) exact-URL hits (expected near zero: new links are novel) and (b) how many new links sit on already-listed registered
+domains (campaign reuse). That is the honest value of a blocklist. Needs two snapshots a week apart; not yet done.
+
+Commands (run from `backend/`, venv active): `alembic upgrade head` | `python -m app.services.intel.cli refresh --all` (~4 min, ~350 MB)
+or `--source phishing_database_domains` (lighter) | `python -m app.services.intel.cli status` | after every refresh
+`python -m evaluation.fetch_external && python -m evaluation.intel_fp_audit`.
+No scheduler yet: feeds go stale after 72 h and the result text then says so. Scheduling (Task Scheduler / cron) is a next step.
+
+Tests: 201 (198 + 3 new at the end; 59 new in this session). Mutation checks: shrink/flood guards, brand/shared-root protection, missing rollback,
+snapshot deletion, expiry. Evaluation downloader now shares the hardened implementation (redirects refused).
+
+## 17. NEXT (supersedes section 15 ordering)
+1. Owner: apply + push this patch, `alembic upgrade head`, load the domains feed, live-test a listed and an unlisted scan.
+2. Review `lockhosts.com` and the reviewed exemptions from primary sources; keep `intel_fp_audit` in the release checklist.
+3. Schedule feed refresh; expose staleness in `/health`; add a second, independent feed (e.g. URLhaus, CC0) and measure agreement.
+4. Temporal-holdout evaluation of lookups once two snapshots exist. Benign deep-link corpus so path rules can be measured.
+5. GitHub Actions CI (needs a token with `workflow` scope to push), Docker rebuild check, Android wiring, alerts/incidents, organisations + RBAC, audit log.

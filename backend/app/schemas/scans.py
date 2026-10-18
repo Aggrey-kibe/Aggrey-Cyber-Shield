@@ -21,6 +21,33 @@ class FindingOut(BaseModel):
     evidence: str | None = None
 
 
+class IntelHitOut(BaseModel):
+    source: str
+    indicator_type: str
+    category: str
+    confidence: str
+    first_seen_at: datetime
+    last_seen_at: datetime
+    license: str
+
+
+class IntelSourceOut(BaseModel):
+    name: str
+    last_refreshed_at: datetime
+    age_hours: float
+    fresh: bool
+    indicators: int
+    license: str
+    attribution: str
+
+
+class IntelOut(BaseModel):
+    checked: bool
+    listed: bool
+    hits: list[IntelHitOut]
+    sources: list[IntelSourceOut]
+
+
 class UrlResultOut(BaseModel):
     url: str
     host: str | None
@@ -29,6 +56,7 @@ class UrlResultOut(BaseModel):
     verdict: str
     verdict_label: str
     findings: list[FindingOut]
+    listed_in_threat_feed: bool = False
 
 
 class ScanResponse(BaseModel):
@@ -42,6 +70,7 @@ class ScanResponse(BaseModel):
     confidence: str
     findings: list[FindingOut]
     urls: list[UrlResultOut] = []
+    intel: IntelOut | None = None
     limitations: list[str]
     input_preview: str
     created_at: datetime

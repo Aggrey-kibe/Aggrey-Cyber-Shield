@@ -8,18 +8,13 @@ reproduced and audited. Downloaded data is git-ignored and never redistributed.
 
     python -m evaluation.fetch_external
 """
-import hashlib
 import json
 import sys
-import urllib.request
 from datetime import datetime, timezone
-from urllib.parse import urlsplit
 
 from evaluation.datasets import EXTERNAL_DIR
 
-ALLOWED_HOSTS = {"raw.githubusercontent.com"}
 MAX_BYTES = 120 * 1024 * 1024
-TIMEOUT_SECONDS = 120
 
 FEEDS = [
     {
@@ -38,20 +33,9 @@ FEEDS = [
 
 
 def _download(url: str, dest) -> tuple[int, str]:
-    parts = urlsplit(url)
-    if parts.scheme != "https" or parts.hostname not in ALLOWED_HOSTS:
-        raise ValueError(f"Refusing to fetch from non-allow-listed location: {url}")
-    sha = hashlib.sha256()
-    size = 0
-    request = urllib.request.Request(url, headers={"User-Agent": "aggrey-shield-eval/1.0"})
-    with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response, open(dest, "wb") as out:
-        while chunk := response.read(1024 * 256):
-            size += len(chunk)
-            if size > MAX_BYTES:
-                raise ValueError("Download exceeds the size cap; aborting.")
-            sha.update(chunk)
-            out.write(chunk)
-    return size, sha.hexdigest()
+    """Single hardened implementation shared with the threat-intel pipeline."""
+    from app.services.intel.download import download
+    return download(url, dest, MAX_BYTES)
 
 
 def main() -> int:

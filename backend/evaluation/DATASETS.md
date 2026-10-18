@@ -49,6 +49,14 @@ URLs (`hxxp://x[.]com`). Third-party URLs are never committed: only the code, th
    `paypal-communication.com`, which forum and blog evidence suggests PayPal really uses. These are recorded false alarms, left unresolved until a
    primary source confirms ownership. A wrong "official" entry would make the scanner trust an impostor.
 
+## 3. Threat-feed lookups (separate from the heuristic evaluation above)
+
+The loaded Phishing.Database feeds are used for lookups, so evaluating lookups on the SAME feed is circular (~100% by construction).
+What HAS been measured (2026-10-18): exact round trip 2000/2000, latency, and false-positive risk on the 10,000 most popular
+domains (`python -m evaluation.intel_fp_audit`): 10 flagged before reviewed protections, 1 after (`lockhosts.com`, unreviewed).
+What has NOT: recall on genuinely new threats. That needs a temporal holdout (see PROJECT_HANDOFF.md section 16).
+The popularity list's licence is unverified, so it is used locally for auditing and never redistributed.
+
 ## Discipline
 Tune only against `--split dev`. `--split test` refuses `--show-errors`. Run it once per released ruleset and record the report in
 `reports/`. Changing the ruleset changes `RULESET_VERSION`; the regression test then demands a reviewed baseline refresh.
