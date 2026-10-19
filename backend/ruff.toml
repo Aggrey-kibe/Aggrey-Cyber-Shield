@@ -1,0 +1,9 @@
+target-version = "py311"
+
+# Old manual scripts that need a live server and are superseded by the automated tests in tests/.
+# Candidates for removal; excluded here rather than edited or deleted without the owner's say-so.
+extend-exclude = ["test_auth_api.py", "test_auth_registration.py"]
+
+[lint]
+# Syntax errors, undefined names, unused imports/variables. A deliberately small, low-noise set.
+select = ["E9", "F"]

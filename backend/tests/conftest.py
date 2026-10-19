@@ -6,6 +6,7 @@ the readiness endpoint is designed to degrade gracefully (HTTP 503) rather
 than raise when the database is unreachable, so tests assert on that
 behavior rather than requiring Docker/Postgres to be running.
 """
+import os
 import pytest
 from fastapi.testclient import TestClient
 
@@ -42,6 +43,11 @@ def _is_test_database() -> bool:
 async def clean_db():
     """Empty all auth tables before each test (test database only)."""
     if not _is_test_database():
+        if os.getenv("CI_REQUIRE_DB_TESTS") == "1":
+            pytest.fail(
+                "CI_REQUIRE_DB_TESTS=1 but DATABASE_URL does not point to a '*_test' database: "
+                "the database tests would be skipped silently."
+            )
         pytest.skip(
             "DB tests only run against a database whose name ends with "
             "'_test'. Set DATABASE_URL to a dedicated test database."

@@ -1,7 +1,7 @@
 # PROJECT_HANDOFF.md — AGGREY SHIELD
 
 > Checkpoint status: last confirmed pushed commit is a02b591 (threat-intelligence layer; push output `8b6e1ee..a02b591`), live-tested on the owner's PC.
-> The Session 6 dependency-security patch is committed only once the owner confirms its push.
+> The Session 6 dependency-security patch and the Session 7 CI patch are committed only once the owner confirms each push.
 > This file itself is committed only once it is added to the repo root and pushed.
 > Source of truth for code: https://github.com/Aggrey-kibe/Aggrey-Cyber-Shield
 > Founder/developer: Aggrey Kibe Kwamboka (Kenya). Android ID: com.aggreyshield.app
@@ -316,3 +316,33 @@ Tests: 209 passed (201 + 8 new).
 3. Schedule feed refresh; surface staleness in /health; review `lockhosts.com` and the reviewed exemptions from primary sources; add the "gmail" brand alias.
 4. Temporal-holdout evaluation of lookups; benign deep-link corpus; second independent feed.
 5. Android wiring, alerts/incidents, organisations + RBAC, audit log.
+
+## 20. CONTINUOUS INTEGRATION (Session 7; patch built, statically verified, NOT yet run on GitHub)
+Files: `.github/workflows/ci.yml`, `.github/dependabot.yml`, `backend/ruff.toml`; `tests/conftest.py` gained `CI_REQUIRE_DB_TESTS`.
+Triggers: push to main, pull requests, weekly schedule (new advisories appear without code changes), manual run.
+Jobs:
+- Lint: `ruff check backend` (syntax errors, undefined names, unused imports/variables; a deliberately small rule set). The two legacy manual scripts
+  `backend/test_auth_api.py` and `backend/test_auth_registration.py` are excluded in `ruff.toml` and are candidates for deletion (superseded by tests/).
+- Tests (Python 3.11 and 3.13): Postgres 16 service named `aggrey_ci_test`; `alembic upgrade head` from empty; `alembic check` (no drift); `pytest`.
+  `CI_REQUIRE_DB_TESTS=1` makes the database tests FAIL instead of silently skipping if the database is not a `*_test` one. Expected: 209 passed, 1 skipped
+  (the skip is the optional external-feed sampling test).
+- Dependency audit: `pip-audit` over the whole installed stack (indirect packages included). Fails the build if a known vulnerability appears.
+- Docker: builds the image; checks non-root user, no test tools in the image, refuses to start in production with a weak JWT secret, starts and reports
+  healthy via the Dockerfile HEALTHCHECK, docs disabled (404), protected route anonymous (401).
+Workflow security: read-only token, no secrets, plain `pull_request` trigger (forks cannot reach secrets), all 7 action references pinned to full commit SHAs
+(actions/checkout v4.4.0, actions/setup-python v5.6.0, resolved from GitHub). All CI secrets are throwaway dummies.
+Dependabot: weekly PRs for pip (/backend), GitHub Actions and the Docker base image; each PR runs this CI.
+VERIFIED here: actionlint 1.7.12 + ShellCheck on every embedded script (no problems); YAML parses; the test/lint/audit steps replayed locally against a Postgres
+named like CI's (6 migrations, no drift, 209 passed 1 skipped, lint clean, audit clean); the guard fails in CI mode and skips locally.
+NOT VERIFIED: the workflow has never run on GitHub; the Docker job (no Docker in the sandbox); the Postgres service container; Python 3.11 and 3.13 on
+GitHub's runners (sandbox has 3.12); Dependabot. Treat the first run as the real test and expect to fix small things from its logs.
+Owner tasks after the first green run: GitHub > Settings > Branches > add a rule for `main` requiring the CI checks to pass; enable Dependabot alerts
+and secret scanning (Settings > Code security); then CI is a gate rather than a notice.
+If a push containing `.github/workflows` is rejected for a missing `workflow` permission, re-authenticate Git (Git Credential Manager) granting workflow scope.
+
+## 21. NEXT (supersedes section 19 ordering)
+1. Owner: push Sessions 6 and 7; watch the first CI run; send me any failing job log; enable branch protection.
+2. Schedule feed refresh; surface staleness in /health; review `lockhosts.com` and the reviewed exemptions from primary sources; add the "gmail" brand alias.
+3. Container image vulnerability scan in CI (e.g. Trivy), after the first green run.
+4. Temporal-holdout evaluation of lookups; benign deep-link corpus; second independent feed.
+5. Android wiring, alerts/incidents, organisations + RBAC, audit log. Remove the two legacy manual scripts if the owner agrees.
