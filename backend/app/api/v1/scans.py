@@ -26,7 +26,7 @@ router = APIRouter(
 
 
 def _unprocessable(exc: InvalidUrl) -> HTTPException:
-    return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    return HTTPException(status_code=422, detail=str(exc))
 
 
 @router.post("/url", response_model=ScanResponse, status_code=status.HTTP_201_CREATED)

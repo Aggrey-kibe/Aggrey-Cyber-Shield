@@ -1,35 +1,32 @@
-# Aggrey Shield backend — Phase 1 dependencies
-# Only what the backend foundation actually imports. Later phases add to
-# this file (auth: argon2-cffi, pyjwt, pyotp — Phase 4; async jobs: redis,
-# celery — Phase 6/7; AI/ML: scikit-learn, pandas — Phase 8; etc.).
+# Aggrey Shield backend: RUNTIME dependencies only (this is exactly what the Docker image installs).
+# Test tools live in requirements-dev.txt.
+# Audit the WHOLE installed stack, not just this file (transitive packages matter):
+#     pip-audit --progress-spinner off
 
 # --- Web framework ---
-fastapi==0.115.6
+fastapi==0.146.0
+# Pinned explicitly although FastAPI pulls it in, so audits and updates see it. Needs Python >= 3.11.
+starlette==1.9.0
 uvicorn[standard]==0.34.0
 
 # --- Configuration & validation ---
 pydantic==2.10.4
 pydantic-settings==2.7.1
-python-dotenv==1.0.1
+python-dotenv==1.2.4
 
 # --- Database (PostgreSQL, async) ---
 sqlalchemy==2.0.36
 asyncpg==0.30.0
-
-# --- Testing ---
-pytest==8.3.4
-pytest-asyncio==0.25.2
-httpx==0.28.1
+alembic==1.14.1
+psycopg[binary]==3.2.3
 
 # --- Authentication ---
 argon2-cffi==23.1.0
-PyJWT==2.10.1
+PyJWT==2.15.1
 pyotp==2.9.0
 
-alembic==1.14.1
-
-psycopg[binary]==3.2.3
-
+# --- Email ---
 resend==2.49.1
 
+# --- Threat scanning ---
 tldextract==5.4.0

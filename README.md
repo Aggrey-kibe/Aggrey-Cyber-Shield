@@ -72,7 +72,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 # Install dependencies
 python -m pip install --upgrade pip
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 
 # Create your local environment file from the template
 Copy-Item .env.example .env
@@ -92,7 +92,7 @@ From the `backend` folder with the virtual environment active:
 python -m pytest -v
 ```
 
-Expected result: `6 passed`.
+Expected result: every test passes. Tests that need a database are skipped unless `DATABASE_URL` points to a database whose name ends in `_test` (they delete data, so they refuse to touch anything else).
 
 ---
 
@@ -175,7 +175,8 @@ aggrey-shield/
     ├── .env.example
     ├── Dockerfile
     ├── pytest.ini
-    ├── requirements.txt
+    ├── requirements.txt          # runtime packages (what Docker installs)
+    ├── requirements-dev.txt      # + test tools
     ├── app/
     │   ├── __init__.py
     │   ├── main.py                  # FastAPI app, middleware, routers

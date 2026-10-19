@@ -1,7 +1,7 @@
 # PROJECT_HANDOFF.md — AGGREY SHIELD
 
-> Checkpoint status: last confirmed pushed commit is 8b6e1ee (evaluation harness; push output `31f9251..8b6e1ee`).
-> The Session 5 threat-intelligence patch is committed only once the owner confirms its push.
+> Checkpoint status: last confirmed pushed commit is a02b591 (threat-intelligence layer; push output `8b6e1ee..a02b591`), live-tested on the owner's PC.
+> The Session 6 dependency-security patch is committed only once the owner confirms its push.
 > This file itself is committed only once it is added to the repo root and pushed.
 > Source of truth for code: https://github.com/Aggrey-kibe/Aggrey-Cyber-Shield
 > Founder/developer: Aggrey Kibe Kwamboka (Kenya). Android ID: com.aggreyshield.app
@@ -276,3 +276,43 @@ snapshot deletion, expiry. Evaluation downloader now shares the hardened impleme
 3. Schedule feed refresh; expose staleness in `/health`; add a second, independent feed (e.g. URLhaus, CC0) and measure agreement.
 4. Temporal-holdout evaluation of lookups once two snapshots exist. Benign deep-link corpus so path rules can be measured.
 5. GitHub Actions CI (needs a token with `workflow` scope to push), Docker rebuild check, Android wiring, alerts/incidents, organisations + RBAC, audit log.
+
+### Session 5 live test (owner's PC, 2026-10-18)
+- `alembic upgrade head`: ad74ffee848f -> e7bad83ac69b. Domains feed loaded: 391,932 accepted, 246 rejected (same counts and reasons as the sandbox).
+- A real listed domain scanned (as text, never visited): score 99, likely_dangerous, confidence "listed". Control google.com: 0, not listed.
+  `/intel/status`: checked, fresh, MIT. Server on port 8006. Pushed as a02b591.
+- Observed gap: the rules alone gave that fake-Gmail page only ~26; the brand list knows "google" but not the alias "gmail". Candidate data fix.
+
+## 18. DEPENDENCY SECURITY AUDIT (Session 6; patch built and verified in a sandbox, not yet pushed)
+Tool: `pip-audit --progress-spinner off` run against the INSTALLED environment. LESSON: auditing only `requirements.txt` (`-r ... --no-deps`)
+undercounted: it missed Starlette (a transitive dependency). Always audit the installed stack.
+
+Before: 25 advisories in 3 packages from requirements.txt, plus Starlette (3+ advisories) once the installed stack was audited.
+- PyJWT 2.10.1 (30 advisories). Our use: `jwt.encode` / `jwt.decode` with one fixed algorithm and our own secret; no JWKS/PyJWK/mixed algorithms, so most
+  advisories do not apply. Upgraded anyway to 2.15.1.
+- python-dotenv 1.0.1 (symlink issue in `set_key`, which we never call). Upgraded to 1.2.4.
+- Starlette 0.41.3 (uploads, FileResponse ranges, StaticFiles on Windows, form limits, Host-header `request.url`). None of those features are used;
+  `request.url.path` is only logged, never used for decisions. Upgraded via FastAPI 0.146.0 / Starlette 1.9.0 (pinned explicitly).
+- pytest 8.3.4 (predictable /tmp dir, local multi-user Unix only; dev-only). Upgraded to 9.1.1 with pytest-asyncio 1.4.0.
+- pip 24.0 (installer tool, not part of the running app): fix with `python -m pip install --upgrade pip`.
+After: 0 known vulnerabilities in the runtime packages (installed stack audited, pip upgraded). All 209 tests pass on the new stack.
+NOT verified: Python 3.11 (the Docker base image). Starlette 1.9 requires >= 3.11, FastAPI/PyJWT/dotenv/pytest support it per package metadata; the
+sandbox only has 3.12. NOT verified: the Docker image itself (no Docker in the sandbox). Rebuild and run it before relying on it.
+
+Other changes in this patch:
+- `requirements.txt` = runtime only (what Docker installs); new `requirements-dev.txt` = + pytest, pytest-asyncio, httpx, pip-audit.
+  The production image no longer contains test tooling. Verified: a venv from `requirements.txt` alone imports and serves the app.
+- JWT_SECRET_KEY must be >= 32 characters and not a placeholder: REFUSED at startup when ENVIRONMENT=production, loud warning otherwise.
+- FOUND AND FIXED a real leak: pydantic echoed rejected setting values (e.g. a weak secret) into startup error messages. Settings now use
+  `hide_input_in_errors=True`. Tests cover both, and fail if either protection is removed.
+- Replaced the deprecated `HTTP_422_UNPROCESSABLE_ENTITY` constant (test warnings 17 -> 1; the remaining one is httpx/TestClient in tests).
+- README install/test instructions corrected (they still said "6 passed").
+Tests: 209 passed (201 + 8 new).
+
+## 19. NEXT (supersedes section 17 ordering)
+1. Owner: apply + push this patch; `python -m pip install --upgrade pip`; `pip install -r requirements-dev.txt`; check the Python version is >= 3.11;
+   generate a strong JWT secret for production (never commit it); rebuild + run the Docker image.
+2. GitHub Actions CI: tests with a Postgres service, `pip-audit`, lint, Docker build. (Pushing workflow files may need a token with `workflow` scope.)
+3. Schedule feed refresh; surface staleness in /health; review `lockhosts.com` and the reviewed exemptions from primary sources; add the "gmail" brand alias.
+4. Temporal-holdout evaluation of lookups; benign deep-link corpus; second independent feed.
+5. Android wiring, alerts/incidents, organisations + RBAC, audit log.

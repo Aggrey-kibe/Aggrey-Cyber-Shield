@@ -1,0 +1,8 @@
+# Development and test tools. Install with:  pip install -r requirements-dev.txt
+# (includes everything in requirements.txt). NOT installed in the production image.
+-r requirements.txt
+
+pytest==9.1.1
+pytest-asyncio==1.4.0
+httpx==0.28.1
+pip-audit==2.10.1

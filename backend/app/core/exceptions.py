@@ -80,7 +80,7 @@ def register_exception_handlers(app: FastAPI) -> None:
         return _error_response(
             code="VALIDATION_ERROR",
             message="Request validation failed.",
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=422,
             details=details,
         )
 

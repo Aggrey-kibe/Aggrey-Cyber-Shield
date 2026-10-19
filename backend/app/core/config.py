@@ -1,7 +1,8 @@
+import logging
 from functools import lru_cache
 from typing import List
 
-from pydantic import field_validator
+from pydantic import ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,6 +12,8 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=True,
         extra="ignore",
+        # Never echo rejected values (they can be secrets) into error messages or logs.
+        hide_input_in_errors=True,
     )
 
     APP_NAME: str = "Aggrey Shield"
@@ -40,6 +43,21 @@ class Settings(BaseSettings):
     # appends the real client IP to X-Forwarded-For. See core/rate_limit.py.
     TRUST_PROXY_HEADERS: bool = False
     PASSWORD_RESET_URL_BASE: str = "https://aggreykibe.blogspot.com/p/reset-password.html"
+    @field_validator("JWT_SECRET_KEY")
+    @classmethod
+    def validate_jwt_secret(cls, value: str, info: ValidationInfo) -> str:
+        """A short or placeholder signing secret lets attackers forge login tokens."""
+        weak = len(value) < 32 or value.lower().startswith(("changeme", "change-me", "secret", "password"))
+        if weak:
+            message = (
+                "JWT_SECRET_KEY is weak (needs at least 32 random characters). Generate one with: "
+                'python -c "import secrets; print(secrets.token_urlsafe(64))"'
+            )
+            if str(info.data.get("ENVIRONMENT", "")).lower() == "production":
+                raise ValueError(message)
+            logging.getLogger("aggreyshield.config").warning(message + " (allowed outside production)")
+        return value
+
     @field_validator("ENVIRONMENT")
     @classmethod
     def validate_environment(cls, value: str) -> str:
