@@ -1,7 +1,7 @@
 # PROJECT_HANDOFF.md — AGGREY SHIELD
 
-> Checkpoint status: last confirmed pushed commit is a02b591 (threat-intelligence layer; push output `8b6e1ee..a02b591`), live-tested on the owner's PC.
-> The Session 6 dependency-security patch and the Session 7 CI patch are committed only once the owner confirms each push.
+> Checkpoint status: last confirmed pushed commit is 4426821 (CI pipeline), seen on GitHub main via a fresh clone; its first CI run FAILED (section 22).
+> The Session 8 CI-fix patch is committed only once the owner confirms its push; whether CI then turns green is not yet known.
 > This file itself is committed only once it is added to the repo root and pushed.
 > Source of truth for code: https://github.com/Aggrey-kibe/Aggrey-Cyber-Shield
 > Founder/developer: Aggrey Kibe Kwamboka (Kenya). Android ID: com.aggreyshield.app
@@ -346,3 +346,34 @@ If a push containing `.github/workflows` is rejected for a missing `workflow` pe
 3. Container image vulnerability scan in CI (e.g. Trivy), after the first green run.
 4. Temporal-holdout evaluation of lookups; benign deep-link corpus; second independent feed.
 5. Android wiring, alerts/incidents, organisations + RBAC, audit log. Remove the two legacy manual scripts if the owner agrees.
+
+## 22. FIRST REAL CI RUN (Session 8)
+How it was observed: the GitHub API was rate-limited from the sandbox and run logs need a login, so the public badge, run list and job pages were read, and the
+failures were then REPRODUCED under the same interpreters CI uses (CPython 3.11.17 and 3.13.16 fetched with uv) using CI's database name and variables.
+Run 1 (push 4426821): Lint PASS | Tests Python 3.11 PASS | Docker image PASS | Tests Python 3.13 FAIL | Dependency audit FAIL.
+- The Docker job passing is the FIRST real verification of the production image: it builds, runs as non-root, ships no test tools, refuses a weak JWT secret in
+  production, reports healthy via the Dockerfile HEALTHCHECK, returns 404 for docs and 401 for a protected route.
+- Dependabot opened 8 pull requests as soon as the config landed (Python base image 3.11 -> 3.14, actions/checkout 4.4.0 -> 7.0.1, actions/setup-python 5.6.0 -> 7.0.0,
+  argon2-cffi, asyncpg, pyotp, pydantic-settings, alembic). All failed CI, for the same two shared reasons below. Do not merge any until CI is green, then review one at a
+  time (the Python 3.14 base-image bump and the database/driver bumps need real scrutiny; the CI Docker and test jobs are what judge them).
+Root causes, both real:
+1. `greenlet` missing on Python 3.13 (73 database-test errors: "No module named 'greenlet'"). SQLAlchemy 2.0.36 installs greenlet automatically only for Python < 3.13,
+   so a clean 3.13 install had a broken async database layer. A genuine defect in requirements.txt that the owner's local runs could not show (database tests are skipped on a
+   development database) and a single-Python sandbox (3.12) could not show. Fix: `greenlet==3.5.6` declared explicitly (prebuilt cp313 wheels exist for Windows, Linux),
+   plus `tests/test_dependencies.py`, which needs no database and fails with a clear message when greenlet is absent.
+2. pip-audit on 3.11 flagged setuptools 79.0.1 (PYSEC-2026-3447 / CVE-2026-59890: MANIFEST.in exclusions bypassed by Unicode normalization when building source
+   distributions on macOS). Not used by the app (never imported); present because Python 3.11 virtualenvs seed it. Fix: upgrade setuptools in the audit job. NO exemption was added.
+Verification of the fix (fresh virtualenvs, CI database and variables): Python 3.11.17, 3.12.3 and 3.13.16 each 210 passed, 1 skipped, 6 migrations, no drift;
+pip-audit clean on all three; actionlint + ShellCheck clean; ruff clean.
+Warnings still present and harmless today: the pinned actions run on Node.js 20 but are forced to Node 24 by GitHub (Dependabot's action bumps address it);
+`ubuntu-latest` began migrating to Ubuntu 26 on 2026-10-19 (the run already worked under it).
+NOT VERIFIED: that the pushed fix turns CI green on GitHub. That will be known from the next run.
+Lessons: (a) the version matrix plus clean installs found a defect that local tests and a single-version sandbox could not; (b) a dependency file must be tested from an
+empty environment on every supported Python.
+
+## 23. NEXT (supersedes section 21 ordering)
+1. Owner: push this fix; open the Actions tab and confirm all four jobs are green (send me any red job's step name).
+2. Review Dependabot PRs one by one once CI is green; enable branch protection requiring the CI checks.
+3. Schedule feed refresh; surface staleness in /health; review `lockhosts.com` and reviewed exemptions from primary sources; add the "gmail" brand alias.
+4. Container image vulnerability scan (Trivy) in CI; remove build tools (pip/setuptools) from the runtime image; update the stale Dockerfile header comment.
+5. Temporal-holdout evaluation of lookups; benign deep-link corpus; second independent feed; Android wiring; alerts/incidents; organisations + RBAC; audit log.
