@@ -149,6 +149,34 @@ Only `.env.example` (placeholders) belongs in Git.
 
 ---
 
+## Keeping the threat lists fresh
+
+AGGREY SHIELD checks scanned links against public phishing lists (Phishing.Database, MIT licence). The lists change daily, so they
+must be refreshed. They are loaded by a separate command, never inside the web server (loading takes minutes and would slow the API).
+
+```powershell
+# From the backend folder, with the virtual environment active:
+python -m app.services.intel.cli refresh --all --if-stale   # reloads only lists older than 20 hours; ~1 second when fresh
+python -m app.services.intel.cli status                     # what is loaded, how old, recent runs
+```
+
+**Windows (development):** register an hourly task once (runs as you, only while you are logged in, catches up after sleep):
+
+```powershell
+.\scripts\windows\schedule-feed-refresh.ps1             # register
+Start-ScheduledTask -TaskName AggreyShield-FeedRefresh   # optional: run it now
+.\scripts\windows\schedule-feed-refresh.ps1 -Remove     # remove it again
+```
+
+Output goes to `%LOCALAPPDATA%\AggreyShield\feed-refresh.log`.
+
+**Production (AWS, not deployed yet):** run the same image as a scheduled ECS task (EventBridge, hourly) with the command
+`python -m app.services.intel.cli refresh --all --if-stale`. A database lock guarantees two refreshes never overlap.
+
+**Is it working?** `GET /api/v1/health` reports `threat_intel`: `fresh`, `incomplete` (not every list loaded), `stale`
+(a list is older than 72 hours) or `not_loaded`. Stale or missing lists do not stop the service, but protection is weaker, and
+the server logs a warning (at most once an hour). Alert on that status or log line.
+
 ## Docker (optional, not yet build-tested)
 
 From the `backend` folder:

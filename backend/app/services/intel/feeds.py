@@ -42,6 +42,7 @@ class Feed:
     max_bytes: int
     min_accepted: int        # a healthy full feed has at least this many valid entries
     max_age_hours: int       # older than this = "stale"
+    refresh_after_hours: int = 20   # `refresh --if-stale` only reloads a feed older than this
 
 
 _BASE = "https://raw.githubusercontent.com/mitchellkrogza/Phishing.Database/master/"

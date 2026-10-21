@@ -1,7 +1,7 @@
 # PROJECT_HANDOFF.md — AGGREY SHIELD
 
-> Checkpoint status: last confirmed pushed commit is 4426821 (CI pipeline), seen on GitHub main via a fresh clone; its first CI run FAILED (section 22).
-> The Session 8 CI-fix patch is committed only once the owner confirms its push; whether CI then turns green is not yet known.
+> Checkpoint status: last confirmed pushed commit is 613b65a (CI fix; push output `4426821..613b65a`). CI run #10 on that commit: COMPLETED SUCCESSFULLY (all 5 jobs).
+> The Session 9 feed-freshness patch is committed only once the owner confirms its push.
 > This file itself is committed only once it is added to the repo root and pushed.
 > Source of truth for code: https://github.com/Aggrey-kibe/Aggrey-Cyber-Shield
 > Founder/developer: Aggrey Kibe Kwamboka (Kenya). Android ID: com.aggreyshield.app
@@ -377,3 +377,33 @@ empty environment on every supported Python.
 3. Schedule feed refresh; surface staleness in /health; review `lockhosts.com` and reviewed exemptions from primary sources; add the "gmail" brand alias.
 4. Container image vulnerability scan (Trivy) in CI; remove build tools (pip/setuptools) from the runtime image; update the stale Dockerfile header comment.
 5. Temporal-holdout evaluation of lookups; benign deep-link corpus; second independent feed; Android wiring; alerts/incidents; organisations + RBAC; audit log.
+
+## 24. CI TURNED GREEN, THEN FEED FRESHNESS (Session 9)
+CI: after pushing 613b65a, GitHub run #10 (id 39504003096) was marked "completed successfully": lint, tests on Python 3.11 and 3.13, the dependency audit and the Docker
+job all pass. The public job pages did not expose job names this time, so the overall conclusion (which requires every job to pass) was relied on.
+The 8 Dependabot PRs still show red from the OLD pipeline; they need `@dependabot rebase` to be re-tested, and should be reviewed and merged ONE AT A TIME only if green.
+The Python 3.14 base-image bump and the asyncpg / alembic / pydantic-settings bumps deserve real scrutiny.
+
+Feed freshness (patch built and verified in a sandbox; NOT yet pushed):
+- `python -m app.services.intel.cli refresh --all --if-stale`: reloads a feed only when its last successful FULL run is older than `Feed.refresh_after_hours`
+  (20 h; lookups call data stale at 72 h, so a failing scheduler has ~2 days of margin). Prints "fresh ... skipped" otherwise (~1 s).
+- A PostgreSQL advisory lock (`LOCK_KEY` in cli.py) prevents overlapping refreshes (also across containers); it is released even if a refresh crashes.
+  A failed download or rejected feed returns exit code 1 (so a scheduler notices) and leaves the old data untouched.
+- `GET /api/v1/health` now includes `threat_intel`: {status: fresh | incomplete | stale | not_loaded | unavailable, sources_loaded, sources_expected,
+  oldest_refresh_age_hours}. Stale or missing lists do NOT make the service unready (HTTP stays 200); a warning is logged at most once an hour. No indicator text is exposed.
+- `scripts/windows/schedule-feed-refresh.ps1` registers/removes an hourly Windows scheduled task (as the current user, logged-on only, catches up after sleep, log in
+  `%LOCALAPPDATA%\AggreyShield\feed-refresh.log`). VERIFIED: parses in real PowerShell 7.6.7; the generated command line was checked against cmd.exe quoting rules with the
+  owner's real (space-containing) path. NOT VERIFIED: actually registering the task on Windows (no Windows in the sandbox); the owner's run is the real test.
+- Production plan, NOT deployed: scheduled ECS task (EventBridge, hourly) running the same image with the refresh command; alert on `threat_intel` status / the warning log.
+FOUND AND FIXED by a test: the hourly-warning limiter started its timer at 0.0 with `time.monotonic()` (which counts from machine boot), so on a host up for under an hour the first
+warning would have been suppressed for up to an hour. Now `None` = never warned, with a test that simulates a 5-minute-old host and mutation-checked.
+Real end-to-end (real feeds, sandbox): empty -> health `not_loaded` -> `refresh --all --if-stale` loaded 788,716 links + 391,932 domains (identical counts to earlier runs) -> health `fresh`
+-> rerun skipped both in 1 s -> data aged 30 h -> `--if-stale` reloaded the domains feed (status ok); audit trail shows every run.
+Tests: 221 passed, 1 skipped on Python 3.11, 3.12 and 3.13 (CI database name and variables); lint clean.
+
+## 25. NEXT (supersedes section 23 ordering)
+1. Owner: push this patch, run the scheduler script, confirm `threat_intel: fresh` in /api/v1/health on the dev server and that the log file fills.
+2. Dependabot: `@dependabot rebase` each PR, merge green ones one at a time; enable branch protection requiring CI.
+3. Android: provide a one-command sanitised zip script (owner finds removing files hard); wire scanning, history, `/users/me`.
+4. Alerts/incidents, organisations + RBAC, audit log. Review `lockhosts.com` and the reviewed exemptions from primary sources; add the "gmail" brand alias.
+5. Trivy image scan in CI; remove pip/setuptools from the runtime image; temporal-holdout evaluation of lookups; second independent feed.
