@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  PRODUCTION / STAGING network policy.
+  - Cleartext (http://) traffic is blocked. Only HTTPS is allowed.
+  - Only certificates trusted by the Android system are accepted (no user-installed CAs).
+  - TLS verification is never disabled anywhere in this app.
+
+  Certificate pinning is not enabled because it needs your real production domain and
+  certificate. See README.md, section "Certificate pinning", for how to add it safely.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

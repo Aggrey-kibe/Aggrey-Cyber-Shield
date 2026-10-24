@@ -1,0 +1,15 @@
+# Copy this file to local.properties (Android Studio creates that file for you
+# and adds sdk.dir automatically). local.properties is git-ignored.
+#
+# sdk.dir is written by Android Studio. If you build from PowerShell only, set it yourself:
+# sdk.dir=C\:\\Users\\YOUR_NAME\\AppData\\Local\\Android\\Sdk
+
+# Backend URL used by DEBUG builds. Must end with a slash.
+#   Android Emulator  -> http://10.0.2.2:8000/         (10.0.2.2 = your computer)
+#   Physical phone    -> http://YOUR_COMPUTER_LAN_IP:8000/   (example: http://192.168.1.50:8000/)
+API_BASE_URL_DEBUG=http://192.168.180.84:8000/
+# Backend URL used by STAGING builds (HTTPS required).
+API_BASE_URL_STAGING=https://staging-api.example.com/
+
+# Backend URL used by RELEASE builds (HTTPS required).
+API_BASE_URL_RELEASE=https://api.example.com/

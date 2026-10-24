@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  DEBUG BUILDS ONLY. This file replaces the main network_security_config.xml in the debug variant.
+  It allows plain http:// so the app can talk to a FastAPI server on your computer
+  (emulator: http://10.0.2.2:8000/, phone: http://YOUR_LAN_IP:8000/).
+  It is NOT included in staging or release builds, which block cleartext traffic.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Theme used once the app is running. Compose draws all UI on top of it. -->
+    <style name="Theme.AggreyShield" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/shield_background</item>
+        <item name="android:colorBackground">@color/shield_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+
+    <!-- Theme used while the app is starting (Android 12+ splash screen API, backported by core-splashscreen). -->
+    <style name="Theme.AggreyShield.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/shield_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_shield_splash</item>
+        <item name="postSplashScreenTheme">@style/Theme.AggreyShield</item>
+    </style>
+</resources>

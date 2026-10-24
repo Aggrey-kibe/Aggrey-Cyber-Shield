@@ -1,0 +1,21 @@
+# Secrets - never commit
+keystore.properties
+*.jks
+*.keystore
+local.properties
+
+# Gradle / Android Studio
+.gradle/
+build/
+/captures
+.externalNativeBuild
+.cxx
+*.iml
+.idea/
+.DS_Store
+
+# Build outputs
+*.apk
+*.aab
+
+build-error.txt

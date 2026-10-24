@@ -1,0 +1,19 @@
+body{
+    background-color: rgba(0, 14, 139, 0.473);
+}
+.rib{
+    color: beige;
+    text-align: center;
+}
+.soni{
+    
+    animation:runRight 10s linear infinite;
+}
+@keyframes runRight{
+    from{
+        transform: translate(100vw);
+    }
+    to{
+        transform: translate(-100%);
+    }
+}
