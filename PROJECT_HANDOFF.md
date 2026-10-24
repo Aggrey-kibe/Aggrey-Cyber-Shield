@@ -1,7 +1,7 @@
 # PROJECT_HANDOFF.md — AGGREY SHIELD
 
-> Checkpoint status: last confirmed pushed commit is 613b65a (CI fix; push output `4426821..613b65a`). CI run #10 on that commit: COMPLETED SUCCESSFULLY (all 5 jobs).
-> The Session 9 feed-freshness patch is committed only once the owner confirms its push.
+> Checkpoint status: last confirmed pushed commit is 4eb5934 (dependency update; push output `ef90290..4eb5934`). CI run #15 on that commit: COMPLETED SUCCESSFULLY (all 5 jobs).
+> Everything below is committed and pushed up to 4eb5934; later work is recorded only once the owner confirms its push.
 > This file itself is committed only once it is added to the repo root and pushed.
 > Source of truth for code: https://github.com/Aggrey-kibe/Aggrey-Cyber-Shield
 > Founder/developer: Aggrey Kibe Kwamboka (Kenya). Android ID: com.aggreyshield.app
@@ -407,3 +407,33 @@ Tests: 221 passed, 1 skipped on Python 3.11, 3.12 and 3.13 (CI database name and
 3. Android: provide a one-command sanitised zip script (owner finds removing files hard); wire scanning, history, `/users/me`.
 4. Alerts/incidents, organisations + RBAC, audit log. Review `lockhosts.com` and the reviewed exemptions from primary sources; add the "gmail" brand alias.
 5. Trivy image scan in CI; remove pip/setuptools from the runtime image; temporal-holdout evaluation of lookups; second independent feed.
+
+## 26. DEPENDABOT REVIEW AND COMBINED DEPENDENCY UPDATE (Session 10) - pushed as 4eb5934
+Outcome: CI run #15 on 4eb5934 completed successfully (5 jobs, including the Docker image built with the new pins). Dependabot then closed its PRs #1-#7 on its own
+(their versions were already on main) and also closed #8 (Python 3.14) because of the new ignore rule. It opened #9 (actions/setup-python 7.0.0 -> 7.1.0) and #10
+(pydantic-settings 2.16.0 -> 2.16.1); both passed CI (runs #16, #17) and are safe to merge from the GitHub page, followed by `git pull --ff-only origin main` locally.
+Updates applied together in one commit: alembic 1.14.1 -> 1.20.0, asyncpg 0.30.0 -> 0.32.0, argon2-cffi 23.1.0 -> 25.1.0, pydantic-settings 2.7.1 -> 2.16.0,
+pyotp 2.9.0 -> 2.10.0, actions/checkout 4.4.0 -> 7.0.1 (SHA 3d3c42e5...), actions/setup-python 5.6.0 -> 7.0.0 (SHA 5fda3b95...). Tested together before the push on CPython
+3.11.17, 3.12.3 and 3.13.16 with a real PostgreSQL: 221 passed, 1 skipped, 6 migrations, no drift, pip-audit clean on all three; actionlint + ShellCheck clean.
+The two actions now run on Node 24 (the Node 20 deprecation warning is gone) and still accept every input the workflow passes.
+Evidence per bump: argon2-cffi was checked for the risk tests cannot see, existing users' stored hashes. Hashes made by 23.1.0 (ASCII, Unicode, 128-character passwords) verify under
+25.1.0, wrong passwords are rejected, parameters are unchanged (m=65536,t=3,p=4: no rehash), and 25.1.0 hashes verify under 23.1.0 (rollback is safe). On the owner's PC the REAL
+stored hash of the test account was verified through the app's own `verify_password` on the new library: True, True, True, False (format ok, correct password accepted, wrong password
+rejected, no rehash needed). pyotp is declared but never imported by the app (reserved for the planned two-factor login); consider removing it until MFA is built.
+Python 3.14 (PR #8 REJECTED): these pinned packages have no prebuilt CPython 3.14 wheel: pydantic-core 2.27.2 (via pydantic 2.10.4), asyncpg 0.30.0, psycopg-binary 3.2.3. A real image
+build would compile pydantic-core with Rust inside the build, which is slow and fragile. Newer releases do have 3.14 wheels (pydantic >= 2.12, pydantic-core 2.50.1, asyncpg 0.32.0, which is now
+installed). A 3.14 move therefore needs: upgrade pydantic and psycopg, add 3.14 to the CI test matrix, then change the base image. `.github/dependabot.yml` ignores Python minor/major
+base-image bumps until then; patch releases of 3.11 still arrive.
+Method note: the patch file did not download twice on the owner's PC, so the changes were applied by a direct-edit script that first checked every expected line (expected
+counts), wrote nothing unless all matched, preserved Windows line endings, and refused to run twice. It was tested on LF and CRLF copies of the real repository and produced files
+identical to the verified patch.
+
+## 27. NEXT (supersedes section 25 ordering)
+1. Owner: optionally merge Dependabot PRs #9 and #10 (green), then `git pull --ff-only origin main`.
+2. Android: the owner built a sanitised zip with `make-android-safe-zip.ps1` (202 files, 0.2 MB; local.properties, .gradle and build output excluded; one secret-looking value blanked in
+   Routes.kt). Waiting for it to be uploaded. Then: audit the app against the backend contract (register, verify, login, refresh, logout, reset, /users/me, scans, history, intel status),
+   check token storage and that cleartext HTTP is limited to debug builds, fix mismatches, wire the explanations (reasons, confidence, which list matched, "not being listed means little").
+   The app cannot be built in the sandbox; the owner builds in Android Studio and reports errors.
+3. Owner: run `scripts/windows/schedule-feed-refresh.ps1` and confirm `threat_intel` becomes `fresh` in /api/v1/health on the dev server (not yet done).
+4. Alerts/incidents, organisations + RBAC, audit log. Review `lockhosts.com` and the reviewed exemptions from primary sources; add the "gmail" brand alias.
+5. Python 3.14 migration plan (section 26); Trivy image scan in CI; remove pip/setuptools from the runtime image; temporal-holdout evaluation of lookups; branch protection requiring CI.
