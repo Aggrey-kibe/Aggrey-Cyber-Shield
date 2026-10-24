@@ -15,3 +15,9 @@ updates:
     directory: "/backend"
     schedule:
       interval: "weekly"
+    # Do not propose Python 3.12+ base images until the 3.14 migration is planned: several pinned packages
+    # (pydantic-core, asyncpg, psycopg-binary) have no prebuilt wheels there. See PROJECT_HANDOFF.md section 26.
+    # Patch releases of 3.11 still arrive.
+    ignore:
+      - dependency-name: "python"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]

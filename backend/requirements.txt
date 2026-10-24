@@ -11,22 +11,22 @@ uvicorn[standard]==0.34.0
 
 # --- Configuration & validation ---
 pydantic==2.10.4
-pydantic-settings==2.7.1
+pydantic-settings==2.16.0
 python-dotenv==1.2.4
 
 # --- Database (PostgreSQL, async) ---
 sqlalchemy==2.0.36
-asyncpg==0.30.0
-alembic==1.14.1
+asyncpg==0.32.0
+alembic==1.20.0
 psycopg[binary]==3.2.3
 # Async SQLAlchemy cannot run without it. SQLAlchemy 2.0.36 installs it automatically only up to
 # Python 3.12, so on 3.13 a clean install had a broken database layer. Declared explicitly.
 greenlet==3.5.6
 
 # --- Authentication ---
-argon2-cffi==23.1.0
+argon2-cffi==25.1.0
 PyJWT==2.15.1
-pyotp==2.9.0
+pyotp==2.10.0
 
 # --- Email ---
 resend==2.49.1
