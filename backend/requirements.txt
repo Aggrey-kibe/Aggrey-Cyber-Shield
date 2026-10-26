@@ -29,7 +29,7 @@ PyJWT==2.15.1
 pyotp==2.10.0
 
 # --- Email ---
-resend==2.49.1
+resend==2.50.0
 
 # --- Threat scanning ---
 tldextract==5.4.0
