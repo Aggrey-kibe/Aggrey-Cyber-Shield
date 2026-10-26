@@ -17,7 +17,7 @@ python-dotenv==1.2.4
 # --- Database (PostgreSQL, async) ---
 sqlalchemy==2.0.36
 asyncpg==0.32.0
-alembic==1.20.0
+alembic==1.20.1
 psycopg[binary]==3.2.3
 # Async SQLAlchemy cannot run without it. SQLAlchemy 2.0.36 installs it automatically only up to
 # Python 3.12, so on 3.13 a clean install had a broken database layer. Declared explicitly.
