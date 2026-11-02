@@ -55,7 +55,8 @@ async def _refresh_locked(names: list[str], limit: int | None, if_stale: bool) -
         if if_stale and name in ages and ages[name] < feed.refresh_after_hours:
             print(f"[{name}] fresh ({ages[name]:.1f}h old, refreshes after {feed.refresh_after_hours}h): skipped")
             continue
-        tmp = Path(tempfile.mkstemp(prefix="intel-", suffix=".txt")[1])
+        with tempfile.NamedTemporaryFile(prefix="intel-", suffix=".txt", delete=False) as handle:
+            tmp = Path(handle.name)
         try:
             print(f"[{name}] downloading list file ...", flush=True)
             size, sha = await asyncio.to_thread(download, feed.url, tmp, feed.max_bytes)
