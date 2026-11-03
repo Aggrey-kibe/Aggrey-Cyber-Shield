@@ -437,3 +437,36 @@ identical to the verified patch.
 3. Owner: run `scripts/windows/schedule-feed-refresh.ps1` and confirm `threat_intel` becomes `fresh` in /api/v1/health on the dev server (not yet done).
 4. Alerts/incidents, organisations + RBAC, audit log. Review `lockhosts.com` and the reviewed exemptions from primary sources; add the "gmail" brand alias.
 5. Python 3.14 migration plan (section 26); Trivy image scan in CI; remove pip/setuptools from the runtime image; temporal-holdout evaluation of lookups; branch protection requiring CI.
+
+## 28. LIVE VERIFICATION ON THE OWNER'S PC (Session 11, 2026-11-03)
+
+State: local commit 75643d7 (Fix Windows temp-file cleanup in intel refresh) on top of 9b6b804, NOT pushed.
+docs/VERIFIED_FEATURES.md and docs/KNOWN_ISSUES.md were created in this session (not committed).
+The heading of section 2 (05cccd8) is out of date: the repo was at 9b6b804 when this session started.
+
+Tests: 221 passed, 1 skipped (external feeds not downloaded), 0 failed, on aggreyshield_test with the
+project .venv (Python 3.13.0). Found and fixed: Windows kept a temp file open in app/services/intel/cli.py.
+
+Live checks on the real database aggreyshield (details and limits in docs/VERIFIED_FEATURES.md):
+server start, health, anonymous access refused (401), threat-list refresh (2 of 2 fresh), password reset by
+emailed link, login, /users/me, URL scan, message scan, scan history, refresh rotation, logout.
+
+How this PC runs the project (differs from earlier sections):
+- PostgreSQL is a Windows service (postgresql-x64-18), not Docker. The app role cannot create databases.
+- The test database aggreyshield_test was created with the postgres admin account and migrated to head e7bad83ac69b.
+- Use the project .venv (Python 3.13.0). The default python on this PC is 3.14.4: do not use it.
+- Tests: set DATABASE_URL to the _test database and CI_REQUIRE_DB_TESTS=1 in ONE PowerShell window only, then close it.
+- Server: python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 (from backend, in a window without the test settings).
+- API description: /api/v1/openapi.json.
+
+Still true: EMAIL_FROM is the Resend test sender, so emails reach only the Resend account owner (KI-3).
+Scanner quality is still not measured here (KI-4). The Android app has not been read against the live API.
+
+## 29. NEXT (supersedes section 27 ordering)
+1. Owner: decide whether to commit docs/ and PROJECT_HANDOFF.md, and whether to push 75643d7. Nothing is pushed without approval.
+2. Android: read the app's API code against the live API (paths, request and response fields, is_verified, token storage,
+   cleartext HTTP only in debug builds). Fix mismatches in small patches. Then build in Android Studio and report errors.
+3. Owner: decide on the hourly refresh task (scripts/windows/schedule-feed-refresh.ps1). Lists go stale 72 hours after the last refresh.
+4. Verify live: a new registration with email verification, DELETE /scans/{id}, change-password, and that one user cannot read another user's scans.
+5. Check the config.py default database password (changeme) and JWT secret strength without printing secrets.
+6. Domain for email sending, public HTTPS backend and CORS, Python 3.14 plan, Dependabot PRs, branch protection, Trivy scan.
