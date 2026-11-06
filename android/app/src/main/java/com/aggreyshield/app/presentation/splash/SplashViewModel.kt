@@ -32,7 +32,7 @@ class SplashViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             val destination = when (sessionManager.state.value) {
-                SessionState.AUTHENTICATED -> Routes.DASHBOARD
+                SessionState.AUTHENTICATED -> Routes.SCANNER_HUB
                 else -> {
                     val onboardingDone = settingsRepository.onboardingCompleted.first()
                     if (onboardingDone) Routes.LOGIN else Routes.ONBOARDING

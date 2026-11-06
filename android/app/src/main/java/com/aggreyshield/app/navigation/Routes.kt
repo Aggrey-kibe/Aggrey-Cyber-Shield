@@ -15,7 +15,7 @@ object Routes {
     const val REGISTER = "register"
     const val VERIFY_EMAIL_PATTERN = "verify-email/{email}"
     const val FORGOT_PASSWORD = "forgot-password"
-    const val RESET_PASSWORD_PATTERN = "REDACTED"
+    const val RESET_PASSWORD_PATTERN = "reset-password/{token}"
 
 
     const val DASHBOARD = "dashboard"

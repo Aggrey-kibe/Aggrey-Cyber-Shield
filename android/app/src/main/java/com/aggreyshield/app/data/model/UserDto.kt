@@ -22,7 +22,7 @@ data class UserDto(
     @SerialName("full_name") val fullName: String? = null,
     val role: String? = null,
     val organization: OrganizationSummaryDto? = null,
-    @SerialName("email_verified") val emailVerified: Boolean = false,
+    @SerialName("is_verified") val emailVerified: Boolean = false,
     @SerialName("mfa_enabled") val mfaEnabled: Boolean = false,
     @SerialName("created_at") val createdAt: String? = null,
 )

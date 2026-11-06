@@ -41,9 +41,9 @@ object ApiEndpoints {
     const val ORGANIZATION_MEMBERS = API_V1 + "organizations/me/members"
 
     // --- Scanning (planned) ---
-    const val SCAN_URL = API_V1 + "scan/url"
-    const val SCAN_MESSAGE = API_V1 + "scan/message"
-    const val SCAN_HISTORY = API_V1 + "scan/history"
+    const val SCAN_URL = API_V1 + "scans/url"
+    const val SCAN_MESSAGE = API_V1 + "scans/message"
+    const val SCAN_HISTORY = API_V1 + "scans"
 
     // --- Incidents (planned) ---
     const val INCIDENTS = API_V1 + "incidents"

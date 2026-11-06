@@ -136,7 +136,7 @@ fun AggreyShieldApp() {
             previous == SessionState.UNAUTHENTICATED &&
             sessionState == SessionState.AUTHENTICATED
         ) {
-            navController.navigate(Routes.DASHBOARD) {
+            navController.navigate(Routes.SCANNER_HUB) {
                 popUpTo(navController.graph.id) { inclusive = true }
                 launchSingleTop = true
             }

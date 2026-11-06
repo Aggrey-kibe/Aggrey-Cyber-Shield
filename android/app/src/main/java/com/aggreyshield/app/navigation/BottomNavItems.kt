@@ -10,10 +10,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 
 data class BottomNavItem(val route: String, val label: String, val icon: ImageVector)
 
+// Hidden until the backend has these endpoints: Dashboard, Incidents, Alerts (see docs/KNOWN_ISSUES.md).
 val BOTTOM_NAV_ITEMS = listOf(
-    BottomNavItem(Routes.DASHBOARD, "Dashboard", Icons.Filled.Dashboard),
     BottomNavItem(Routes.SCANNER_HUB, "Scanner", Icons.Filled.Shield),
-    BottomNavItem(Routes.INCIDENT_LIST, "Incidents", Icons.Filled.Warning),
-    BottomNavItem(Routes.ALERTS, "Alerts", Icons.Filled.NotificationImportant),
     BottomNavItem(Routes.PROFILE, "Profile", Icons.Filled.Person),
 )

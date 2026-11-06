@@ -37,6 +37,10 @@ data class ScanResult(
     val redirects: List<String>,
     val reputation: List<ReputationEntry>,
     val modelVersion: String?,
+    val verdictLabel: String? = null,
+    val summary: String? = null,
+    val confidenceLabel: String? = null,
+    val limitations: List<String> = emptyList(),
 )
 
 /** Result of a message analysis, exactly as reported by the backend. */
@@ -52,6 +56,10 @@ data class MessageAnalysis(
     val explanation: String?,
     val analyzedAt: Instant?,
     val modelVersion: String?,
+    val verdictLabel: String? = null,
+    val summary: String? = null,
+    val confidenceLabel: String? = null,
+    val limitations: List<String> = emptyList(),
 )
 
 data class ScanHistoryItem(
@@ -61,4 +69,5 @@ data class ScanHistoryItem(
     val riskLevel: Severity,
     val riskScore: Double?,
     val scannedAt: Instant?,
+    val verdictLabel: String? = null,
 )

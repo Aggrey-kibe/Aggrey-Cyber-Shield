@@ -16,7 +16,7 @@ import kotlinx.serialization.Serializable
 data class ScanUrlRequestDto(val url: String)
 
 @Serializable
-data class ScanMessageRequestDto(val content: String)
+data class ScanMessageRequestDto(@SerialName("message") val content: String)
 
 @Serializable
 data class IndicatorDto(
